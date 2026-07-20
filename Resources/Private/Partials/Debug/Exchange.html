@@ -1,0 +1,16 @@
+<f:if condition="{debug}">
+  <details class="cf-debug">
+    <summary><span class="cf-debug-dot"></span> API debug</summary>
+    <div class="cf-debug-body">
+      <div class="cf-debug-meta">
+        <span><b>Method</b><code>{debug.method}</code></span>
+        <span><b>Status</b><code>{debug.status}</code></span>
+        <span class="cf-debug-url"><b>Endpoint</b><code>{debug.url}</code></span>
+      </div>
+      <section><h3>Request headers</h3><pre>{debug.headers}</pre></section>
+      <section><h3>Request payload</h3><pre>{debug.request}</pre></section>
+      <section><h3>Response payload</h3><pre>{debug.response}</pre></section>
+      <p class="cf-debug-note">Sensitive values are redacted. Image Base64 content is summarized instead of displayed.</p>
+    </div>
+  </details>
+</f:if>

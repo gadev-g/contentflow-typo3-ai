@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 259" role="img" aria-labelledby="title desc">
+  <title id="title">ContentFlow AI</title>
+  <desc id="desc">AI powering your content</desc>
+  <defs>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#20c7f4"/>
+      <stop offset=".48" stop-color="#168bff"/>
+      <stop offset=".76" stop-color="#7654f6"/>
+      <stop offset="1" stop-color="#c02bea"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#brand)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M132 190V86c0-38 30-68 68-68h92"/>
+    <path d="M183 190V111c0-24 19-43 43-43h66"/>
+    <path d="M183 118h87"/>
+    <path d="M183 151h64"/>
+    <path d="M183 190h91c23 0 42-10 58-27"/>
+  </g>
+  <g fill="url(#brand)">
+    <circle cx="323" cy="82" r="8"/>
+    <circle cx="342" cy="111" r="11"/>
+    <circle cx="318" cy="139" r="9"/>
+  </g>
+  <text x="375" y="132" fill="#070b1d" font-family="Inter,Arial,sans-serif" font-size="72" font-weight="750" letter-spacing="-3">ContentFlow</text>
+  <text x="823" y="132" fill="url(#brand)" font-family="Inter,Arial,sans-serif" font-size="72" font-weight="800">AI</text>
+  <text x="383" y="177" fill="#4b79e8" font-family="Inter,Arial,sans-serif" font-size="19" font-weight="600" letter-spacing="10">AI POWERING YOUR CONTENT</text>
+</svg>

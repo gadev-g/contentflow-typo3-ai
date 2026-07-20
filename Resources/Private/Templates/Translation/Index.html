@@ -1,0 +1,74 @@
+<f:layout name="Module" />
+<f:section name="Content">
+  <div class="cf-module">
+    <header class="cf-hero">
+      <div class="cf-brand-copy">
+        <span class="cf-eyebrow">CONTENTFLOW AI</span>
+        <div class="cf-main-row">
+          <div class="cf-logo cf-logo-wordmark"><img src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}" alt="ContentFlow AI" /></div>
+          <div class="cf-heading">
+            <h1>AI Translation</h1>
+            <p>Translate TYPO3 content and asset metadata safely with a review before publishing.</p>
+          </div>
+        </div>
+      </div>
+      <span class="cf-status"><i></i> API connected</span>
+    </header>
+
+    <nav class="cf-product-switch"><f:link.action action="index" controller="Hub">All products</f:link.action><f:link.action action="index" controller="Translation" class="active">Translation</f:link.action><f:link.action action="index" controller="AssetMetadata">Asset Intelligence</f:link.action></nav>
+
+    <f:flashMessages />
+
+    <f:form action="preview" method="post" class="cf-card">
+      <div class="cf-card-header">
+        <div class="cf-card-title"><span class="cf-step">1</span><h2>Translation setup</h2></div>
+        <p>Choose the content and target language. ContentFlow handles the technical details.</p>
+      </div>
+      <div class="cf-card-body">
+        <div class="cf-grid cf-grid-record">
+          <div class="form-group">
+            <label for="table">What would you like to translate?</label>
+            <f:form.select name="table" id="table" options="{tables}" class="form-select" />
+            <small>Choose a page, content element, asset, or file reference</small>
+          </div>
+          <div class="form-group cf-record-picker">
+            <label>Content</label>
+            <f:form.hidden name="uid" id="uid" />
+            <button type="button" id="contentflow-record-picker" class="btn btn-default cf-picker-button">Select record</button>
+            <small id="contentflow-record-selection">No record selected yet</small>
+          </div>
+        </div>
+
+        <div class="cf-divider"><span>Language</span></div>
+        <div class="cf-grid cf-grid-language">
+          <div class="form-group">
+            <label for="sourceLanguage">Translate from</label>
+            <f:form.select name="sourceLanguage" id="sourceLanguage" class="form-select">
+              <f:for each="{languages}" as="language"><option value="{language.code}">{language.title} ({language.code})</option></f:for>
+            </f:form.select>
+          </div>
+          <div class="cf-arrow">→</div>
+          <div class="form-group">
+            <label for="targetLanguage">Translate to</label>
+            <f:form.select name="targetLanguage" id="targetLanguage" class="form-select" required="true">
+              <f:for each="{languages}" as="language"><f:if condition="!{language.isDefault}"><option value="{language.code}">{language.title} ({language.code})</option></f:if></f:for>
+            </f:form.select>
+            <small>The TYPO3 language ID is detected automatically</small>
+          </div>
+        </div>
+
+        <details class="cf-advanced">
+          <summary>Advanced AI settings</summary>
+          <div class="cf-grid cf-grid-provider">
+            <div class="form-group"><label for="provider">Provider</label><f:form.select name="provider" id="provider" value="{defaultProvider}" class="form-select" required="true"><f:for each="{providers}" as="provider"><option value="{provider.id}">{provider.id}</option></f:for></f:form.select><small>Only providers enabled in the ContentFlow dashboard are shown.</small></div>
+            <div class="form-group"><label for="model">Model <span>optional</span></label><f:form.textfield name="model" id="model" placeholder="Use provider default" class="form-control" /></div>
+          </div>
+        </details>
+      </div>
+      <footer class="cf-card-footer">
+        <div class="cf-safe"><span>✓</span><p><b>Review-first workflow</b><br />Nothing is written until you approve the preview.</p></div>
+        <f:form.submit value="Create translation preview →" class="btn btn-primary cf-primary" />
+      </footer>
+    </f:form>
+  </div>
+</f:section>

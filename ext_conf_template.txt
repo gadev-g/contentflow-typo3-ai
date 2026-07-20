@@ -1,0 +1,8 @@
+# cat=basic/enable; type=string; label=ContentFlow API URL:Base URL of the ContentFlow API, for example http://host.docker.internal
+apiUrl = http://host.docker.internal:8081
+
+# cat=basic/enable; type=password; label=ContentFlow project API key:Generate this key in the ContentFlow dashboard under API keys. It is used to authenticate this TYPO3 project.
+apiKey =
+
+# cat=basic/enable; type=boolean; label=Enable API debug panel:Shows sanitized request and response payloads in translation and asset previews. Never displays the API key or full image Base64 data.
+debugMode = 0

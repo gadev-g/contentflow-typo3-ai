@@ -1,0 +1,80 @@
+name: Release merged pull request
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contentflow-typo3-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Calculate next patch version
+        id: version
+        shell: bash
+        run: |
+          latest="$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n 1)"
+          if [ -z "$latest" ]; then
+            version="$(sed -nE "s/.*'version' => '([0-9]+\.[0-9]+\.[0-9]+)'.*/\1/p" ext_emconf.php)"
+          else
+            current="${latest#v}"
+            IFS='.' read -r major minor patch <<< "$current"
+            version="${major}.${minor}.$((patch + 1))"
+          fi
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Update extension version
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: sed -i -E "s/'version' => '[^']+'/'version' => '${VERSION}'/" ext_emconf.php
+
+      - name: Commit and tag release
+        shell: bash
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "contentflow-release-bot"
+          git config user.email "release-bot@contentflow-ai.com"
+          git add ext_emconf.php
+          git diff --cached --quiet || git commit -m "chore(release): ${TAG}"
+          git tag -a "$TAG" -m "ContentFlow TYPO3 ${TAG}"
+          git push origin main
+          git push origin "$TAG"
+
+      - name: Build installable extension archive
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p build/contentflow_translation
+          rsync -a --exclude='.git' --exclude='.github' --exclude='build' ./ build/contentflow_translation/
+          cd build
+          zip -r "contentflow_translation-${VERSION}.zip" contentflow_translation
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "$TAG" "build/contentflow_translation-${VERSION}.zip" \
+            --title "ContentFlow AI for TYPO3 ${TAG}" \
+            --generate-notes \
+            --verify-tag

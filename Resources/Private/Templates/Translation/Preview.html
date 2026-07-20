@@ -1,0 +1,24 @@
+<f:layout name="Module" />
+<f:section name="Content">
+  <div class="cf-module">
+    <header class="cf-hero cf-hero-compact">
+      <div class="cf-brand-copy"><span class="cf-eyebrow">TRANSLATION REVIEW</span><div class="cf-main-row"><div class="cf-logo cf-logo-wordmark"><img src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}" alt="ContentFlow AI" /></div><div class="cf-heading"><h1>Review changes</h1><p>Compare every field before writing it to TYPO3.</p></div></div></div>
+      <span class="cf-status"><i></i> Ready to approve</span>
+    </header>
+
+    <nav class="cf-product-switch"><f:link.action action="index" controller="Hub">All products</f:link.action><f:link.action action="index" controller="Translation" class="active">Translation</f:link.action><f:link.action action="index" controller="AssetMetadata">Asset Intelligence</f:link.action></nav>
+    <div class="cf-jobbar"><span>Job <code>{jobId}</code></span><span>Record <b>{table}:{uid}</b></span><span>{meta.provider} · {meta.model}</span></div>
+
+    <div class="cf-card">
+      <div class="cf-card-header"><div class="cf-card-title"><span class="cf-step">2</span><h2>Field comparison</h2></div><p>Source content is never modified.</p></div>
+      <div class="cf-review-table"><table class="table"><thead><tr><th>Field</th><th>Source</th><th>Translation</th></tr></thead><tbody>
+        <f:for each="{sourceFields}" as="source" key="field"><tr><th><code>{field}</code></th><td><div class="cf-content-box">{source}</div></td><td><div class="cf-content-box cf-translated">{translatedFields.{field}}</div></td></tr></f:for>
+      </tbody></table></div>
+      <footer class="cf-card-footer">
+        <div class="cf-safe"><span>✓</span><p><b>{meta.usage.input_tokens + meta.usage.output_tokens} tokens used</b><br />{meta.usage.input_tokens} input · {meta.usage.output_tokens} output</p></div>
+        <div class="cf-actions"><f:link.action action="index" class="btn btn-default">Discard</f:link.action><f:form action="apply" method="post"><f:form.hidden name="previewToken" value="{previewToken}" /><f:form.submit value="Approve and save" class="btn btn-success cf-primary" /></f:form></div>
+      </footer>
+    </div>
+    <f:render partial="Debug/Exchange" arguments="{debug: debug}" />
+  </div>
+</f:section>

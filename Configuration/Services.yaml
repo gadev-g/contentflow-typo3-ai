@@ -1,0 +1,20 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  ContentFlow\Typo3Translation\:
+    resource: '../Classes/*'
+
+  ContentFlow\Typo3Translation\Controller\TranslationController:
+    public: true
+
+  ContentFlow\Typo3Translation\Controller\AssetMetadataController:
+    public: true
+
+  ContentFlow\Typo3Translation\Controller\HubController:
+    public: true
+
+  ContentFlow\Typo3Translation\Service\ContentFlowClient:
+    public: false

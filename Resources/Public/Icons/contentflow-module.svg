@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">ContentFlow AI</title>
+  <defs>
+    <linearGradient id="cf-gradient" x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#20c7f4"/>
+      <stop offset="0.52" stop-color="#168bff"/>
+      <stop offset="1" stop-color="#7654f6"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="13" fill="#101a32"/>
+  <path d="M14 38V25.5C14 17.5 20.5 11 28.5 11H45a4 4 0 0 1 0 8H28.5a6.5 6.5 0 0 0-6.5 6.5V38a4 4 0 0 1-8 0Z" fill="url(#cf-gradient)"/>
+  <path d="M25 46V30.5A7.5 7.5 0 0 1 32.5 23H43a4 4 0 0 1 0 8H34v5h7a4 4 0 0 1 0 8h-7v2a4.5 4.5 0 0 1-9 0Z" fill="#fff"/>
+  <circle cx="49" cy="28" r="3" fill="#20c7f4"/>
+  <circle cx="52" cy="37" r="2.5" fill="#168bff"/>
+  <circle cx="48" cy="45" r="2" fill="#7654f6"/>
+</svg>

@@ -1,0 +1,13 @@
+<f:layout name="Module" />
+<f:section name="Content">
+  <div class="cf-module">
+    <header class="cf-hero"><div class="cf-brand-copy"><span class="cf-eyebrow">ASSET INTELLIGENCE · REVIEW</span><div class="cf-main-row"><div class="cf-logo cf-logo-wordmark"><img src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}" alt="ContentFlow AI" /></div><div class="cf-heading"><h1>Review metadata</h1><p>Approve the generated fields before writing them to TYPO3.</p></div></div></div><span class="cf-status"><i></i> Analysis complete</span></header>
+    <nav class="cf-product-switch"><f:link.action action="index" controller="Hub">All products</f:link.action><f:link.action action="index" controller="Translation">Translation</f:link.action><f:link.action action="index" controller="AssetMetadata" class="active">Asset Intelligence</f:link.action></nav>
+    <div class="cf-jobbar"><span>Asset <b>{fileName}</b></span><span>UID <b>{fileUid}</b></span><span>{meta.provider} · {meta.model}</span></div>
+    <div class="cf-asset-review">
+      <aside class="cf-asset-preview"><img src="{publicUrl}" alt="Selected TYPO3 asset preview" /><small>{fileName}</small></aside>
+      <div class="cf-card"><div class="cf-card-header"><div class="cf-card-title"><span class="cf-step">2</span><h2>Generated metadata</h2></div></div><div class="cf-card-body cf-metadata-fields"><f:for each="{metadata}" as="value" key="field"><div><span>{field}</span><p>{value}</p></div></f:for></div><footer class="cf-card-footer"><f:link.action action="index" class="btn btn-default">Discard</f:link.action><f:form action="apply" method="post"><f:form.hidden name="previewToken" value="{previewToken}" /><f:form.submit value="Approve and save" class="btn btn-primary cf-primary" /></f:form></footer></div>
+    </div>
+    <f:render partial="Debug/Exchange" arguments="{debug: debug}" />
+  </div>
+</f:section>

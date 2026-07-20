@@ -1,0 +1,23 @@
+{
+  "name": "contentflow/typo3-translation",
+  "description": "ContentFlow AI translation workflow for TYPO3 CMS",
+  "type": "typo3-cms-extension",
+  "license": "proprietary",
+  "require": {
+    "php": ">=8.2",
+    "typo3/cms-backend": "^13.4",
+    "typo3/cms-core": "^13.4",
+    "typo3/cms-extbase": "^13.4",
+    "typo3/cms-fluid": "^13.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "ContentFlow\\Typo3Translation\\": "Classes/"
+    }
+  },
+  "extra": {
+    "typo3/cms": {
+      "extension-key": "contentflow_translation"
+    }
+  }
+}

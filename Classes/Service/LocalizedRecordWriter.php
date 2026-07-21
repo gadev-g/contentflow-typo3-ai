@@ -49,11 +49,13 @@ final readonly class LocalizedRecordWriter
             throw new \RuntimeException('TYPO3 did not create the localized record.');
         }
 
-        $handler = GeneralUtility::makeInstance(DataHandler::class);
-        $handler->start([$table => [(int) $localizedUid => $fields]], []);
-        $handler->process_datamap();
-        if ([] !== $handler->errorLog) {
-            throw new \RuntimeException(implode(' ', $handler->errorLog));
+        if ([] !== $fields) {
+            $handler = GeneralUtility::makeInstance(DataHandler::class);
+            $handler->start([$table => [(int) $localizedUid => $fields]], []);
+            $handler->process_datamap();
+            if ([] !== $handler->errorLog) {
+                throw new \RuntimeException(implode(' ', $handler->errorLog));
+            }
         }
 
         return (int) $localizedUid;

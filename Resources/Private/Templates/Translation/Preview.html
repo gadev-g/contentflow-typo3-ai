@@ -14,6 +14,7 @@
       <f:for each="{records}" as="record">
         <section class="cf-record-review">
           <h3><span>{record.table}</span> #{record.uid}</h3>
+          <f:if condition="{record.structuralOnly}"><div class="alert alert-info">This structural content element has no text fields. Its localized structure will still be created in TYPO3.</div></f:if>
           <div class="cf-review-table"><table class="table"><thead><tr><th>Field</th><th>Source</th><th>Translation</th></tr></thead><tbody>
             <f:for each="{record.sourceFields}" as="source" key="field"><tr><th><code>{field}</code></th><td><div class="cf-content-box">{source}</div></td><td><div class="cf-content-box cf-translated">{record.translatedFields.{field}}</div></td></tr></f:for>
           </tbody></table></div>

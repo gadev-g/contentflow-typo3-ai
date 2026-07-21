@@ -10,6 +10,7 @@ final readonly class TranslatableRecordReader
 {
     private const ALLOWED_TABLES = ['pages', 'tt_content', 'sys_file_reference', 'sys_file_metadata'];
     private const BLOCKED_FIELDS = ['uid', 'pid', 'tstamp', 'crdate', 'deleted', 'hidden', 'sorting', 'sys_language_uid', 'l10n_parent', 'l10n_source', 't3ver_oid', 't3ver_wsid'];
+    private const TRANSLATABLE_TYPES = ['input', 'text', 'email'];
 
     public function __construct(private ConnectionPool $connectionPool)
     {
@@ -31,8 +32,9 @@ final readonly class TranslatableRecordReader
             if (\in_array($name, self::BLOCKED_FIELDS, true) || !isset($record[$name]) || !\is_string($record[$name]) || '' === trim($record[$name])) {
                 continue;
             }
+            $configuration = $this->effectiveFieldConfiguration($table, $record, $name, $configuration);
             $type = $configuration['config']['type'] ?? '';
-            if (\in_array($type, ['input', 'text', 'email', 'link'], true)) {
+            if (\in_array($type, self::TRANSLATABLE_TYPES, true) && !$this->isTechnicalInput($configuration['config'] ?? [])) {
                 $fields[$name] = $record[$name];
             }
         }
@@ -44,5 +46,35 @@ final readonly class TranslatableRecordReader
     public function allowedTables(): array
     {
         return self::ALLOWED_TABLES;
+    }
+
+    /**
+     * Custom content types can override the field configuration below
+     * TCA/types/<CType>/columnsOverrides. Use that effective configuration so
+     * project-specific fields are treated exactly like core fields.
+     *
+     * @param array<string, mixed> $record
+     * @param array<string, mixed> $configuration
+     * @return array<string, mixed>
+     */
+    private function effectiveFieldConfiguration(string $table, array $record, string $field, array $configuration): array
+    {
+        $typeField = $GLOBALS['TCA'][$table]['ctrl']['type'] ?? null;
+        if (!\is_string($typeField) || !isset($record[$typeField])) {
+            return $configuration;
+        }
+
+        $recordType = (string) $record[$typeField];
+        $override = $GLOBALS['TCA'][$table]['types'][$recordType]['columnsOverrides'][$field] ?? null;
+
+        return \is_array($override) ? array_replace_recursive($configuration, $override) : $configuration;
+    }
+
+    /** @param array<string, mixed> $config */
+    private function isTechnicalInput(array $config): bool
+    {
+        $eval = array_filter(array_map('trim', explode(',', (string) ($config['eval'] ?? ''))));
+
+        return [] !== array_intersect($eval, ['int', 'double2', 'date', 'datetime', 'time', 'timesec', 'year', 'unixTimestamp']);
     }
 }

@@ -55,22 +55,30 @@ final class TranslationController extends ActionController
     {
         try {
             $targetLanguageId = $this->resolveLanguageId($targetLanguage);
-            $selection = $this->resolveSelection($scope, $table, $uid, $uids);
+            $selection = $this->expandNestedContent($this->resolveSelection($scope, $table, $uid, $uids));
             $requestRecords = [];
             $previewRecords = [];
             foreach ($selection as $record) {
                 $sourceFields = $this->reader->read($record['table'], $record['uid']);
-                if ([] === $sourceFields) {
-                    continue;
-                }
                 $reference = $record['table'].':'.$record['uid'];
-                $requestRecords[] = ['reference' => $reference, 'fields' => $sourceFields];
-                $previewRecords[$reference] = $record + ['reference' => $reference, 'sourceFields' => $sourceFields, 'translatedFields' => []];
+                $previewRecords[$reference] = $record + [
+                    'reference' => $reference,
+                    'sourceFields' => $sourceFields,
+                    'translatedFields' => [],
+                    'structuralOnly' => [] === $sourceFields,
+                ];
+                if ([] !== $sourceFields) {
+                    $requestRecords[] = ['reference' => $reference, 'fields' => $sourceFields];
+                }
             }
-            if ([] === $requestRecords) {
-                throw new \RuntimeException('No translatable fields were found in the selected records.');
-            }
-            $result = $this->client->translateBatch($requestRecords, $sourceLanguage, $targetLanguage, $provider, $model);
+            $result = [] !== $requestRecords
+                ? $this->client->translateBatch($requestRecords, $sourceLanguage, $targetLanguage, $provider, $model)
+                : [
+                    'job_id' => 'typo3-structure-'.bin2hex(random_bytes(6)),
+                    'records' => [],
+                    'meta' => ['provider' => 'TYPO3', 'model' => 'structural localization', 'usage' => ['input_tokens' => 0, 'output_tokens' => 0]],
+                    '_debug' => null,
+                ];
             foreach ($result['records'] ?? [] as $translatedRecord) {
                 $reference = (string) ($translatedRecord['reference'] ?? '');
                 if (isset($previewRecords[$reference])) {
@@ -78,7 +86,7 @@ final class TranslationController extends ActionController
                 }
             }
             foreach ($previewRecords as $record) {
-                if ([] === $record['translatedFields']) {
+                if ([] !== $record['sourceFields'] && [] === $record['translatedFields']) {
                     throw new \RuntimeException('The provider did not return a translation for '.$record['reference'].'.');
                 }
             }
@@ -210,5 +218,130 @@ final class TranslationController extends ActionController
         }
 
         return [['table' => $table, 'uid' => $this->resolveRecordUid($table, $uid)]];
+    }
+
+    /**
+     * Expand selected containers recursively. This supports EXT:container,
+     * Gridelements, Flux and common project-specific parent relations while
+     * keeping the result stable and free of duplicates.
+     *
+     * @param list<array{table: string, uid: int}> $selection
+     * @return list<array{table: string, uid: int}>
+     */
+    private function expandNestedContent(array $selection): array
+    {
+        $expanded = [];
+        $visited = [];
+        $parentRelations = $this->availableContentParentRelations();
+        $queue = $this->includeContainerAncestors($selection, $parentRelations);
+
+        while ([] !== $queue) {
+            $record = array_shift($queue);
+            if (!\is_array($record)) {
+                continue;
+            }
+            $key = $record['table'].':'.$record['uid'];
+            if (isset($visited[$key])) {
+                continue;
+            }
+            $visited[$key] = true;
+            $expanded[] = $record;
+
+            if ('tt_content' !== $record['table']) {
+                continue;
+            }
+            foreach ($parentRelations as $relation) {
+                $query = $this->connectionPool->getQueryBuilderForTable('tt_content');
+                $conditions = [
+                    $query->expr()->eq($relation['field'], $query->createNamedParameter($record['uid'], \Doctrine\DBAL\ParameterType::INTEGER)),
+                    $query->expr()->eq('sys_language_uid', $query->createNamedParameter(0, \Doctrine\DBAL\ParameterType::INTEGER)),
+                ];
+                if (isset($relation['tableField'])) {
+                    $conditions[] = $query->expr()->eq($relation['tableField'], $query->createNamedParameter('tt_content'));
+                }
+                $childUids = $query->select('uid')->from('tt_content')->where(...$conditions)->orderBy('sorting')->executeQuery()->fetchFirstColumn();
+                foreach ($childUids as $childUid) {
+                    $queue[] = ['table' => 'tt_content', 'uid' => (int) $childUid];
+                }
+            }
+        }
+
+        return $expanded;
+    }
+
+    /**
+     * A child can only be localized after its connected container translation
+     * exists. Add missing ancestors and keep them before the selected child.
+     *
+     * @param list<array{table: string, uid: int}> $selection
+     * @param list<array{field: string, tableField?: string}> $relations
+     * @return list<array{table: string, uid: int}>
+     */
+    private function includeContainerAncestors(array $selection, array $relations): array
+    {
+        $ordered = [];
+        $added = [];
+        $add = function (array $record) use (&$add, &$ordered, &$added, $relations): void {
+            $key = $record['table'].':'.$record['uid'];
+            if (isset($added[$key])) {
+                return;
+            }
+            $added[$key] = true;
+            if ('tt_content' === $record['table']) {
+                $parentUid = $this->contentParentUid($record['uid'], $relations);
+                if ($parentUid > 0) {
+                    $add(['table' => 'tt_content', 'uid' => $parentUid]);
+                }
+            }
+            $ordered[] = $record;
+        };
+        foreach ($selection as $record) {
+            $add($record);
+        }
+
+        return $ordered;
+    }
+
+    /** @param list<array{field: string, tableField?: string}> $relations */
+    private function contentParentUid(int $uid, array $relations): int
+    {
+        foreach ($relations as $relation) {
+            $query = $this->connectionPool->getQueryBuilderForTable('tt_content');
+            $fields = [$relation['field']];
+            if (isset($relation['tableField'])) {
+                $fields[] = $relation['tableField'];
+            }
+            $record = $query->select(...$fields)->from('tt_content')->where(
+                $query->expr()->eq('uid', $query->createNamedParameter($uid, \Doctrine\DBAL\ParameterType::INTEGER)),
+            )->executeQuery()->fetchAssociative();
+            if (!$record || (int) ($record[$relation['field']] ?? 0) <= 0) {
+                continue;
+            }
+            if (isset($relation['tableField']) && 'tt_content' !== ($record[$relation['tableField']] ?? null)) {
+                continue;
+            }
+
+            return (int) $record[$relation['field']];
+        }
+
+        return 0;
+    }
+
+    /** @return list<array{field: string, tableField?: string}> */
+    private function availableContentParentRelations(): array
+    {
+        $schemaManager = $this->connectionPool->getConnectionForTable('tt_content')->createSchemaManager();
+        $columns = array_change_key_case($schemaManager->listTableColumns('tt_content'), CASE_LOWER);
+        $relations = [];
+        foreach (['tx_container_parent', 'tx_gridelements_container', 'tx_flux_parent'] as $field) {
+            if (isset($columns[$field])) {
+                $relations[] = ['field' => $field];
+            }
+        }
+        if (isset($columns['parentid'], $columns['parenttable'])) {
+            $relations[] = ['field' => 'parentid', 'tableField' => 'parenttable'];
+        }
+
+        return $relations;
     }
 }

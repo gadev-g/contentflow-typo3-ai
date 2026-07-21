@@ -132,7 +132,7 @@
 .cf-seo-preview span { display: block; margin-bottom: 7px; color: var(--cf-blue); font-size: 10px; font-weight: 800; letter-spacing: .08em; }
 .cf-seo-preview p,.cf-seo-preview strong { margin: 0; color: #26354a; line-height: 1.5; }
 .cf-seo-schema pre { max-height: 360px; margin: 0; padding: 14px; overflow: auto; border-radius: 9px; background: #0b1325; color: #dce8ff; white-space: pre-wrap; }
-.cf-seo-schema pre code { padding: 0; color: inherit; font: inherit; white-space: inherit; background: transparent; }
+.cf-seo-schema pre code { padding: 0; color: #fff !important; font: inherit; white-space: inherit; background: transparent; -webkit-text-fill-color: #fff; }
 .cf-visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
 .cf-product-card h2 { margin: 5px 0 8px; font-size: 21px; }
 .cf-product-card p { min-height: 39px; color: #697486; line-height: 1.5; }

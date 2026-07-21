@@ -20,7 +20,7 @@ return [
         'extensionName' => 'ContentflowTranslation',
         'iconIdentifier' => 'contentflow-ai-module',
         'controllerActions' => [
-            HubController::class => ['index'],
+            HubController::class => ['index', 'coverage'],
             TranslationController::class => ['index', 'preview', 'apply'],
             AssetMetadataController::class => ['index', 'preview', 'apply'],
             ImageGenerationController::class => ['index'],

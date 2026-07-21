@@ -13,12 +13,12 @@
         <div class="cf-grid cf-grid-record">
           <div class="form-group cf-record-picker">
             <label>TYPO3 page</label>
-            <f:form.hidden name="uid" id="uid" />
+            <f:form.hidden name="uid" id="uid" value="{preselectedUid}" />
             <f:form.hidden name="uids" id="uids" />
             <f:form.select name="scope" id="scope" class="cf-visually-hidden" options="{page: 'Complete page'}" />
             <f:form.select name="table" id="table" class="cf-visually-hidden" options="{pages: 'Page'}" />
             <button type="button" id="contentflow-record-picker" class="btn btn-default cf-picker-button">Select page</button>
-            <small id="contentflow-record-selection">No page selected yet</small>
+            <small id="contentflow-record-selection"><f:if condition="{preselectedUid}"><f:then>Page #{preselectedUid} selected</f:then><f:else>No page selected yet</f:else></f:if></small>
             <div id="contentflow-record-list" class="cf-record-list"></div>
           </div>
           <div class="form-group"><label for="language">Output language</label><f:form.textfield name="language" id="language" value="de" class="form-control" required="true" /><small>ISO language code, for example de or en.</small></div>

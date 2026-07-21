@@ -19,12 +19,17 @@
 
     <f:flashMessages />
 
-    <f:form action="preview" method="post" class="cf-card">
+    <f:form action="preview" method="post" class="cf-card cf-translation-form">
       <div class="cf-card-header">
         <div class="cf-card-title"><span class="cf-step">1</span><h2>Translation setup</h2></div>
         <p>Choose the content and target language. ContentFlow handles the technical details.</p>
       </div>
       <div class="cf-card-body">
+        <div class="form-group cf-scope-select">
+          <label for="scope">Translation scope</label>
+          <f:form.select name="scope" id="scope" class="form-select" options="{single: 'Single record', multiple: 'Multiple content elements', page: 'Complete page with all content elements'}" />
+          <small>Translate one record, a custom selection, or the page record together with all visible default-language content.</small>
+        </div>
         <div class="cf-grid cf-grid-record">
           <div class="form-group">
             <label for="table">What would you like to translate?</label>
@@ -34,8 +39,10 @@
           <div class="form-group cf-record-picker">
             <label>Content</label>
             <f:form.hidden name="uid" id="uid" />
+            <f:form.hidden name="uids" id="uids" />
             <button type="button" id="contentflow-record-picker" class="btn btn-default cf-picker-button">Select record</button>
             <small id="contentflow-record-selection">No record selected yet</small>
+            <div id="contentflow-record-list" class="cf-record-list"></div>
           </div>
         </div>
 
@@ -67,7 +74,10 @@
       </div>
       <footer class="cf-card-footer">
         <div class="cf-safe"><span>✓</span><p><b>Review-first workflow</b><br />Nothing is written until you approve the preview.</p></div>
-        <f:form.submit value="Create translation preview →" class="btn btn-primary cf-primary" />
+        <button type="submit" id="contentflow-translation-submit" class="btn btn-primary cf-primary">
+          <span class="cf-submit-idle">Create translation preview <span>→</span></span>
+          <span class="cf-submit-loading"><span class="cf-spinner" aria-hidden="true"></span> Creating preview …</span>
+        </button>
       </footer>
     </f:form>
   </div>

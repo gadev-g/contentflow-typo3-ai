@@ -2,32 +2,31 @@
 <f:section name="Content">
   <div class="cf-module">
     <header class="cf-hero">
-      <div class="cf-brand-copy">
-        <span class="cf-eyebrow">CONTENTFLOW AI · ASSET INTELLIGENCE</span>
-        <div class="cf-main-row">
-          <div class="cf-logo cf-logo-wordmark"><img src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}" alt="ContentFlow AI" /></div>
-          <div class="cf-heading"><h1>Image metadata</h1><p>Turn visual content into accessible, searchable TYPO3 asset metadata.</p></div>
-        </div>
-      </div>
+      <div class="cf-brand-copy"><span class="cf-eyebrow">CONTENTFLOW AI · ASSET INTELLIGENCE</span><div class="cf-main-row"><div class="cf-logo cf-logo-wordmark"><img src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}" alt="ContentFlow AI" /></div><div class="cf-heading"><h1>Image metadata</h1><p>Turn visual content into accessible, searchable TYPO3 asset metadata.</p></div></div></div>
       <span class="cf-status"><i></i> Vision ready</span>
     </header>
     <f:render partial="ProductMenu" arguments="{currentProduct: 'Asset Intelligence'}" />
     <f:flashMessages />
     <f:form action="preview" method="post" class="cf-card cf-asset-form">
-      <div class="cf-card-header"><div class="cf-card-title"><span class="cf-step">1</span><h2>Select and analyze</h2></div><p>The original file is never modified.</p></div>
+      <div class="cf-card-header"><div class="cf-card-title"><span class="cf-step">1</span><h2>Select and analyze</h2></div><p>The original files are never modified.</p></div>
       <div class="cf-card-body">
-        <div class="cf-asset-intro"><div class="cf-vision-icon">◎</div><div><b>Choose an image from TYPO3 Filelist</b><small>JPG, PNG, WebP, or GIF · maximum 10 MB</small></div></div>
+        <div class="cf-asset-intro"><div class="cf-vision-icon">◎</div><div><b>Choose images or a complete TYPO3 folder</b><small>JPG, PNG, WebP, or GIF · maximum 10 MB each · up to 25 images</small></div></div>
         <div class="form-group cf-record-picker">
-          <label>Image</label>
-          <f:form.hidden name="fileUid" id="fileUid" />
-          <button type="button" id="contentflow-asset-picker" class="cf-asset-picker-button"><span class="cf-picker-icon">▧</span><span class="cf-picker-copy"><b>Browse TYPO3 assets</b><small>Open the Filelist selector</small></span><span class="cf-picker-arrow">→</span></button>
-          <small id="contentflow-asset-selection">No image selected yet</small>
+          <label>Images</label>
+          <f:form.hidden name="fileUids" id="fileUids" />
+          <f:form.hidden name="folderIdentifier" id="folderIdentifier" />
+          <div class="cf-asset-picker-actions">
+            <button type="button" id="contentflow-asset-picker" class="cf-asset-picker-button"><span class="cf-picker-icon">▧</span><span class="cf-picker-copy"><b>Select images</b><small>Choose several assets with “Import selection”</small></span><span class="cf-picker-arrow">→</span></button>
+            <button type="button" id="contentflow-folder-picker" class="cf-asset-picker-button cf-folder-picker-button"><span class="cf-picker-icon">▣</span><span class="cf-picker-copy"><b>Select a folder</b><small>Choose a folder in the TYPO3 Filebrowser</small></span><span class="cf-picker-arrow">→</span></button>
+          </div>
+          <small class="cf-picker-help">Mark the checkboxes in the Filebrowser and click “Import selection”.</small>
+          <div id="contentflow-asset-selection" class="cf-record-list" aria-live="polite"><span>No images selected yet</span></div>
         </div>
         <div class="cf-divider"><span>Metadata language</span></div>
         <div class="form-group"><label for="language">Generate metadata in</label><f:form.select name="language" id="language" class="form-select"><f:for each="{languages}" as="language"><option value="{language.code}">{language.title} ({language.code})</option></f:for></f:form.select><small>TYPO3 language mapping is handled automatically</small></div>
         <details class="cf-advanced"><summary>Advanced AI settings</summary><div class="cf-grid cf-grid-provider"><div class="form-group"><label for="provider">Vision provider</label><f:form.select name="provider" id="provider" value="{defaultProvider}" class="form-select" required="true"><f:for each="{providers}" as="provider"><option value="{provider.id}">{provider.id}</option></f:for></f:form.select><small>Only providers enabled in the ContentFlow dashboard are shown.</small></div><div class="form-group"><label for="model">Vision model <span>optional</span></label><f:form.textfield name="model" id="model" placeholder="Use provider default" class="form-control" /></div></div></details>
       </div>
-      <footer class="cf-card-footer"><div class="cf-safe"><span>✓</span><p><b>Review before saving</b><br />Title, alt text, description, and keywords remain editable in TYPO3.</p></div><button type="submit" id="contentflow-analyze-submit" class="btn btn-primary cf-primary" disabled="disabled"><span>Analyze image</span><span>→</span></button></footer>
+      <footer class="cf-card-footer"><div class="cf-safe"><span>✓</span><p><b>Review before saving</b><br />Title, alt text, description, and keywords remain editable in TYPO3.</p></div><button type="submit" id="contentflow-analyze-submit" class="btn btn-primary cf-primary" disabled="disabled"><span>Analyze images</span><span>→</span></button></footer>
     </f:form>
   </div>
 </f:section>

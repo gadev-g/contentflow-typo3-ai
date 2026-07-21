@@ -114,13 +114,6 @@ const preventSameLanguage = () => {
 };
 document.querySelector('#sourceLanguage')?.addEventListener('change', preventSameLanguage);
 
-submitButton?.addEventListener('pointerdown', () => {
-  if (!submitButton.disabled && submitButton.dataset.loading !== 'true') {
-    submitButton.dataset.loading = 'pending';
-    submitButton.setAttribute('aria-busy', 'true');
-  }
-});
-
 form?.addEventListener('submit', (event) => {
   if (!submitButton) {
     event.preventDefault();

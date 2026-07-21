@@ -20,6 +20,7 @@ final readonly class LocalizedRecordWriter
         $control = $GLOBALS['TCA'][$table]['ctrl'] ?? [];
         $languageField = $control['languageField'] ?? null;
         $parentField = $control['transOrigPointerField'] ?? null;
+
         if (!\is_string($languageField) || !\is_string($parentField)) {
             throw new \RuntimeException('Table is not configured for connected localization.');
         }
@@ -27,24 +28,39 @@ final readonly class LocalizedRecordWriter
         $query = $this->connectionPool->getQueryBuilderForTable($table);
         $query->getRestrictions()->removeAll();
         $localizedUid = $query->select('uid')->from($table)->where(
-            $query->expr()->eq($parentField, $query->createNamedParameter($sourceUid, \Doctrine\DBAL\ParameterType::INTEGER)),
-            $query->expr()->eq($languageField, $query->createNamedParameter($languageId, \Doctrine\DBAL\ParameterType::INTEGER)),
+            $query->expr()->eq(
+                $parentField,
+                $query->createNamedParameter($sourceUid, \Doctrine\DBAL\ParameterType::INTEGER),
+            ),
+            $query->expr()->eq(
+                $languageField,
+                $query->createNamedParameter($languageId, \Doctrine\DBAL\ParameterType::INTEGER),
+            ),
         )->executeQuery()->fetchOne();
 
         if (false === $localizedUid) {
             $handler = GeneralUtility::makeInstance(DataHandler::class);
             $handler->start([], [$table => [$sourceUid => ['localize' => $languageId]]]);
             $handler->process_cmdmap();
+
             if ([] !== $handler->errorLog) {
                 throw new \RuntimeException(implode(' ', $handler->errorLog));
             }
+
             $query = $this->connectionPool->getQueryBuilderForTable($table);
             $query->getRestrictions()->removeAll();
             $localizedUid = $query->select('uid')->from($table)->where(
-                $query->expr()->eq($parentField, $query->createNamedParameter($sourceUid, \Doctrine\DBAL\ParameterType::INTEGER)),
-                $query->expr()->eq($languageField, $query->createNamedParameter($languageId, \Doctrine\DBAL\ParameterType::INTEGER)),
+                $query->expr()->eq(
+                    $parentField,
+                    $query->createNamedParameter($sourceUid, \Doctrine\DBAL\ParameterType::INTEGER),
+                ),
+                $query->expr()->eq(
+                    $languageField,
+                    $query->createNamedParameter($languageId, \Doctrine\DBAL\ParameterType::INTEGER),
+                ),
             )->executeQuery()->fetchOne();
         }
+
         if (false === $localizedUid) {
             throw new \RuntimeException('TYPO3 did not create the localized record.');
         }
@@ -53,6 +69,7 @@ final readonly class LocalizedRecordWriter
             $handler = GeneralUtility::makeInstance(DataHandler::class);
             $handler->start([$table => [(int) $localizedUid => $fields]], []);
             $handler->process_datamap();
+
             if ([] !== $handler->errorLog) {
                 throw new \RuntimeException(implode(' ', $handler->errorLog));
             }

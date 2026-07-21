@@ -34,8 +34,13 @@ final class TranslationController extends ActionController
             $providers = $this->client->providers();
         } catch (\Throwable $exception) {
             $providers = [];
-            $this->addFlashMessage($exception->getMessage(), 'Provider configuration unavailable', ContextualFeedbackSeverity::ERROR);
+            $this->addFlashMessage(
+                $exception->getMessage(),
+                'Provider configuration unavailable',
+                ContextualFeedbackSeverity::ERROR,
+            );
         }
+
         $module->assignMultiple([
             'tables' => [
                 'pages' => 'Page',
@@ -51,55 +56,97 @@ final class TranslationController extends ActionController
         return $module->renderResponse('Translation/Index');
     }
 
-    public function previewAction(string $table, int $uid, string $sourceLanguage, string $targetLanguage, string $provider = '', string $model = '', string $scope = 'single', string $uids = ''): ResponseInterface
-    {
+    public function previewAction(
+        string $table,
+        int $uid,
+        string $sourceLanguage,
+        string $targetLanguage,
+        string $provider = '',
+        string $model = '',
+        string $scope = 'single',
+        string $uids = '',
+    ): ResponseInterface {
         try {
             $targetLanguageId = $this->resolveLanguageId($targetLanguage);
             $selection = $this->expandNestedContent($this->resolveSelection($scope, $table, $uid, $uids));
             $requestRecords = [];
             $previewRecords = [];
+
             foreach ($selection as $record) {
                 $sourceFields = $this->reader->read($record['table'], $record['uid']);
-                $reference = $record['table'].':'.$record['uid'];
+                $reference = $record['table'] . ':' . $record['uid'];
                 $previewRecords[$reference] = $record + [
                     'reference' => $reference,
                     'sourceFields' => $sourceFields,
                     'translatedFields' => [],
                     'structuralOnly' => [] === $sourceFields,
                 ];
+
                 if ([] !== $sourceFields) {
                     $requestRecords[] = ['reference' => $reference, 'fields' => $sourceFields];
                 }
             }
+
             $result = [] !== $requestRecords
-                ? $this->client->translateBatch($requestRecords, $sourceLanguage, $targetLanguage, $provider, $model)
+                ? $this->client->translateBatch(
+                    $requestRecords,
+                    $sourceLanguage,
+                    $targetLanguage,
+                    $provider,
+                    $model,
+                )
                 : [
-                    'job_id' => 'typo3-structure-'.bin2hex(random_bytes(6)),
+                    'job_id' => 'typo3-structure-' . bin2hex(random_bytes(6)),
                     'records' => [],
-                    'meta' => ['provider' => 'TYPO3', 'model' => 'structural localization', 'usage' => ['input_tokens' => 0, 'output_tokens' => 0], 'translation_settings' => ['instructions_applied' => false, 'glossary_entries_applied' => 0]],
+                    'meta' => [
+                        'provider' => 'TYPO3',
+                        'model' => 'structural localization',
+                        'usage' => [
+                            'input_tokens' => 0,
+                            'output_tokens' => 0,
+                        ],
+                        'translation_settings' => [
+                            'instructions_applied' => false,
+                            'glossary_entries_applied' => 0,
+                        ],
+                    ],
                     '_debug' => null,
                 ];
+
             foreach ($result['records'] ?? [] as $translatedRecord) {
                 $reference = (string) ($translatedRecord['reference'] ?? '');
                 if (isset($previewRecords[$reference])) {
                     $previewRecords[$reference]['translatedFields'] = $translatedRecord['fields'] ?? [];
                 }
             }
+
             foreach ($previewRecords as $record) {
                 if ([] !== $record['sourceFields'] && [] === $record['translatedFields']) {
-                    throw new \RuntimeException('The provider did not return a translation for '.$record['reference'].'.');
+                    throw new \RuntimeException(
+                        'The provider did not return a translation for ' . $record['reference'] . '.',
+                    );
                 }
             }
+
             $previewRecords = array_values($previewRecords);
             $token = bin2hex(random_bytes(24));
-            $this->backendUser()->setAndSaveSessionData('contentflow_translation_'.$token, [
+
+            $this->backendUser()->setAndSaveSessionData('contentflow_translation_' . $token, [
                 'records' => $previewRecords,
                 'targetLanguageId' => $targetLanguageId,
                 'jobId' => $result['job_id'],
                 'createdAt' => time(),
             ]);
+
             $module = $this->moduleTemplateFactory->create($this->request);
-            $module->assignMultiple(['records' => $previewRecords, 'recordCount' => count($previewRecords), 'previewToken' => $token, 'jobId' => $result['job_id'], 'meta' => $result['meta'], 'debug' => $result['_debug'] ?? null]);
+            $module->assignMultiple([
+                'records' => $previewRecords,
+                'recordCount' => count($previewRecords),
+                'previewToken' => $token,
+                'jobId' => $result['job_id'],
+                'meta' => $result['meta'],
+                'debug' => $result['_debug'] ?? null,
+            ]);
 
             return $module->renderResponse('Translation/Preview');
         } catch (\Throwable $exception) {
@@ -111,21 +158,34 @@ final class TranslationController extends ActionController
 
     public function applyAction(string $previewToken): ResponseInterface
     {
-        $sessionKey = 'contentflow_translation_'.$previewToken;
+        $sessionKey = 'contentflow_translation_' . $previewToken;
         $preview = $this->backendUser()->getSessionData($sessionKey);
+
         try {
             if (!\is_array($preview) || !isset($preview['createdAt']) || time() - (int) $preview['createdAt'] > 3600) {
                 throw new \RuntimeException('The preview expired. Please create a new translation preview.');
             }
+
             $localizedUids = [];
+
             foreach ($preview['records'] ?? [] as $record) {
-                $localizedUids[] = $this->writer->write((string) $record['table'], (int) $record['uid'], (int) $preview['targetLanguageId'], (array) $record['translatedFields']);
+                $localizedUids[] = $this->writer->write(
+                    (string) $record['table'],
+                    (int) $record['uid'],
+                    (int) $preview['targetLanguageId'],
+                    (array) $record['translatedFields'],
+                );
             }
+
             if ([] === $localizedUids) {
                 throw new \RuntimeException('The preview does not contain any records.');
             }
+
             $this->backendUser()->setAndSaveSessionData($sessionKey, null);
-            $this->addFlashMessage(count($localizedUids).' reviewed translation(s) were saved.', 'Translations saved');
+            $this->addFlashMessage(
+                count($localizedUids) . ' reviewed translation(s) were saved.',
+                'Translations saved',
+            );
         } catch (\Throwable $exception) {
             $this->addFlashMessage($exception->getMessage(), 'Saving failed', ContextualFeedbackSeverity::ERROR);
         }
@@ -156,6 +216,7 @@ final class TranslationController extends ActionController
                 ];
             }
         }
+
         ksort($languages);
 
         return array_values($languages);
@@ -181,9 +242,15 @@ final class TranslationController extends ActionController
         $query = $this->connectionPool->getQueryBuilderForTable('sys_file_metadata');
         $uid = $query->select('uid')
             ->from('sys_file_metadata')
-            ->where($query->expr()->eq('file', $query->createNamedParameter($selectedUid, \Doctrine\DBAL\ParameterType::INTEGER)))
+            ->where(
+                $query->expr()->eq(
+                    'file',
+                    $query->createNamedParameter($selectedUid, \Doctrine\DBAL\ParameterType::INTEGER),
+                ),
+            )
             ->executeQuery()
             ->fetchOne();
+
         if (false === $uid) {
             throw new \RuntimeException('No metadata record exists for the selected asset.');
         }
@@ -196,20 +263,44 @@ final class TranslationController extends ActionController
     {
         if ('multiple' === $scope) {
             $selected = array_values(array_unique(array_filter(array_map('intval', explode(',', $uids)))));
+
             if ([] === $selected) {
                 throw new \RuntimeException('Please select at least one content element.');
             }
 
-            return array_map(static fn (int $selectedUid): array => ['table' => 'tt_content', 'uid' => $selectedUid], $selected);
+            return array_map(
+                static fn (int $selectedUid): array => [
+                    'table' => 'tt_content',
+                    'uid' => $selectedUid,
+                ],
+                $selected,
+            );
         }
+
         if ('page' === $scope) {
             $selection = [['table' => 'pages', 'uid' => $uid]];
             $query = $this->connectionPool->getQueryBuilderForTable('tt_content');
-            $contentUids = $query->select('uid')->from('tt_content')->where(
-                $query->expr()->eq('pid', $query->createNamedParameter($uid, \Doctrine\DBAL\ParameterType::INTEGER)),
-                $query->expr()->eq('sys_language_uid', $query->createNamedParameter(0, \Doctrine\DBAL\ParameterType::INTEGER)),
-                $query->expr()->eq('hidden', $query->createNamedParameter(0, \Doctrine\DBAL\ParameterType::INTEGER)),
-            )->orderBy('sorting')->executeQuery()->fetchFirstColumn();
+            $contentUids = $query
+                ->select('uid')
+                ->from('tt_content')
+                ->where(
+                    $query->expr()->eq(
+                        'pid',
+                        $query->createNamedParameter($uid, \Doctrine\DBAL\ParameterType::INTEGER),
+                    ),
+                    $query->expr()->eq(
+                        'sys_language_uid',
+                        $query->createNamedParameter(0, \Doctrine\DBAL\ParameterType::INTEGER),
+                    ),
+                    $query->expr()->eq(
+                        'hidden',
+                        $query->createNamedParameter(0, \Doctrine\DBAL\ParameterType::INTEGER),
+                    ),
+                )
+                ->orderBy('sorting')
+                ->executeQuery()
+                ->fetchFirstColumn();
+
             foreach ($contentUids as $contentUid) {
                 $selection[] = ['table' => 'tt_content', 'uid' => (int) $contentUid];
             }
@@ -237,29 +328,52 @@ final class TranslationController extends ActionController
 
         while ([] !== $queue) {
             $record = array_shift($queue);
+
             if (!\is_array($record)) {
                 continue;
             }
-            $key = $record['table'].':'.$record['uid'];
+
+            $key = $record['table'] . ':' . $record['uid'];
+
             if (isset($visited[$key])) {
                 continue;
             }
+
             $visited[$key] = true;
             $expanded[] = $record;
 
             if ('tt_content' !== $record['table']) {
                 continue;
             }
+
             foreach ($parentRelations as $relation) {
                 $query = $this->connectionPool->getQueryBuilderForTable('tt_content');
                 $conditions = [
-                    $query->expr()->eq($relation['field'], $query->createNamedParameter($record['uid'], \Doctrine\DBAL\ParameterType::INTEGER)),
-                    $query->expr()->eq('sys_language_uid', $query->createNamedParameter(0, \Doctrine\DBAL\ParameterType::INTEGER)),
+                    $query->expr()->eq(
+                        $relation['field'],
+                        $query->createNamedParameter($record['uid'], \Doctrine\DBAL\ParameterType::INTEGER),
+                    ),
+                    $query->expr()->eq(
+                        'sys_language_uid',
+                        $query->createNamedParameter(0, \Doctrine\DBAL\ParameterType::INTEGER),
+                    ),
                 ];
+
                 if (isset($relation['tableField'])) {
-                    $conditions[] = $query->expr()->eq($relation['tableField'], $query->createNamedParameter('tt_content'));
+                    $conditions[] = $query->expr()->eq(
+                        $relation['tableField'],
+                        $query->createNamedParameter('tt_content'),
+                    );
                 }
-                $childUids = $query->select('uid')->from('tt_content')->where(...$conditions)->orderBy('sorting')->executeQuery()->fetchFirstColumn();
+
+                $childUids = $query
+                    ->select('uid')
+                    ->from('tt_content')
+                    ->where(...$conditions)
+                    ->orderBy('sorting')
+                    ->executeQuery()
+                    ->fetchFirstColumn();
+
                 foreach ($childUids as $childUid) {
                     $queue[] = ['table' => 'tt_content', 'uid' => (int) $childUid];
                 }
@@ -281,20 +395,27 @@ final class TranslationController extends ActionController
     {
         $ordered = [];
         $added = [];
+
         $add = function (array $record) use (&$add, &$ordered, &$added, $relations): void {
-            $key = $record['table'].':'.$record['uid'];
+            $key = $record['table'] . ':' . $record['uid'];
+
             if (isset($added[$key])) {
                 return;
             }
+
             $added[$key] = true;
+
             if ('tt_content' === $record['table']) {
                 $parentUid = $this->contentParentUid($record['uid'], $relations);
+
                 if ($parentUid > 0) {
                     $add(['table' => 'tt_content', 'uid' => $parentUid]);
                 }
             }
+
             $ordered[] = $record;
         };
+
         foreach ($selection as $record) {
             $add($record);
         }
@@ -311,12 +432,23 @@ final class TranslationController extends ActionController
             if (isset($relation['tableField'])) {
                 $fields[] = $relation['tableField'];
             }
-            $record = $query->select(...$fields)->from('tt_content')->where(
-                $query->expr()->eq('uid', $query->createNamedParameter($uid, \Doctrine\DBAL\ParameterType::INTEGER)),
-            )->executeQuery()->fetchAssociative();
+
+            $record = $query
+                ->select(...$fields)
+                ->from('tt_content')
+                ->where(
+                    $query->expr()->eq(
+                        'uid',
+                        $query->createNamedParameter($uid, \Doctrine\DBAL\ParameterType::INTEGER),
+                    ),
+                )
+                ->executeQuery()
+                ->fetchAssociative();
+
             if (!$record || (int) ($record[$relation['field']] ?? 0) <= 0) {
                 continue;
             }
+
             if (isset($relation['tableField']) && 'tt_content' !== ($record[$relation['tableField']] ?? null)) {
                 continue;
             }
@@ -333,11 +465,13 @@ final class TranslationController extends ActionController
         $schemaManager = $this->connectionPool->getConnectionForTable('tt_content')->createSchemaManager();
         $columns = array_change_key_case($schemaManager->listTableColumns('tt_content'), CASE_LOWER);
         $relations = [];
+
         foreach (['tx_container_parent', 'tx_gridelements_container', 'tx_flux_parent'] as $field) {
             if (isset($columns[$field])) {
                 $relations[] = ['field' => $field];
             }
         }
+
         if (isset($columns['parentid'], $columns['parenttable'])) {
             $relations[] = ['field' => 'parentid', 'tableField' => 'parenttable'];
         }

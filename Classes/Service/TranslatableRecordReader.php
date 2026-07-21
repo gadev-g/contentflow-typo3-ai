@@ -9,7 +9,20 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 final readonly class TranslatableRecordReader
 {
     private const ALLOWED_TABLES = ['pages', 'tt_content', 'sys_file_reference', 'sys_file_metadata'];
-    private const BLOCKED_FIELDS = ['uid', 'pid', 'tstamp', 'crdate', 'deleted', 'hidden', 'sorting', 'sys_language_uid', 'l10n_parent', 'l10n_source', 't3ver_oid', 't3ver_wsid'];
+    private const BLOCKED_FIELDS = [
+        'uid',
+        'pid',
+        'tstamp',
+        'crdate',
+        'deleted',
+        'hidden',
+        'sorting',
+        'sys_language_uid',
+        'l10n_parent',
+        'l10n_source',
+        't3ver_oid',
+        't3ver_wsid',
+    ];
     private const TRANSLATABLE_TYPES = ['input', 'text', 'email'];
 
     public function __construct(private ConnectionPool $connectionPool)
@@ -22,19 +35,41 @@ final readonly class TranslatableRecordReader
         if (!\in_array($table, self::ALLOWED_TABLES, true) || !isset($GLOBALS['TCA'][$table])) {
             throw new \InvalidArgumentException('This table is not enabled for ContentFlow translations.');
         }
+
         $query = $this->connectionPool->getQueryBuilderForTable($table);
-        $record = $query->select('*')->from($table)->where($query->expr()->eq('uid', $query->createNamedParameter($uid, \Doctrine\DBAL\ParameterType::INTEGER)))->executeQuery()->fetchAssociative();
+        $record = $query
+            ->select('*')
+            ->from($table)
+            ->where($query->expr()->eq(
+                'uid',
+                $query->createNamedParameter($uid, \Doctrine\DBAL\ParameterType::INTEGER),
+            ))
+            ->executeQuery()
+            ->fetchAssociative();
+
         if (!$record) {
             throw new \RuntimeException('Record not found.');
         }
+
         $fields = [];
+
         foreach (($GLOBALS['TCA'][$table]['columns'] ?? []) as $name => $configuration) {
-            if (\in_array($name, self::BLOCKED_FIELDS, true) || !isset($record[$name]) || !\is_string($record[$name]) || '' === trim($record[$name])) {
+            $isEmptyOrBlocked = \in_array($name, self::BLOCKED_FIELDS, true)
+                || !isset($record[$name])
+                || !\is_string($record[$name])
+                || '' === trim($record[$name]);
+
+            if ($isEmptyOrBlocked) {
                 continue;
             }
+
             $configuration = $this->effectiveFieldConfiguration($table, $record, $name, $configuration);
             $type = $configuration['config']['type'] ?? '';
-            if (\in_array($type, self::TRANSLATABLE_TYPES, true) && !$this->isTechnicalInput($configuration['config'] ?? [])) {
+
+            $isTranslatable = \in_array($type, self::TRANSLATABLE_TYPES, true)
+                && !$this->isTechnicalInput($configuration['config'] ?? []);
+
+            if ($isTranslatable) {
                 $fields[$name] = $record[$name];
             }
         }
@@ -57,8 +92,12 @@ final readonly class TranslatableRecordReader
      * @param array<string, mixed> $configuration
      * @return array<string, mixed>
      */
-    private function effectiveFieldConfiguration(string $table, array $record, string $field, array $configuration): array
-    {
+    private function effectiveFieldConfiguration(
+        string $table,
+        array $record,
+        string $field,
+        array $configuration,
+    ): array {
         $typeField = $GLOBALS['TCA'][$table]['ctrl']['type'] ?? null;
         if (!\is_string($typeField) || !isset($record[$typeField])) {
             return $configuration;
@@ -75,6 +114,9 @@ final readonly class TranslatableRecordReader
     {
         $eval = array_filter(array_map('trim', explode(',', (string) ($config['eval'] ?? ''))));
 
-        return [] !== array_intersect($eval, ['int', 'double2', 'date', 'datetime', 'time', 'timesec', 'year', 'unixTimestamp']);
+        return [] !== array_intersect(
+            $eval,
+            ['int', 'double2', 'date', 'datetime', 'time', 'timesec', 'year', 'unixTimestamp'],
+        );
     }
 }

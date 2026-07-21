@@ -32,4 +32,19 @@ final class AssetReader
 
         return ['uid' => $fileUid, 'name' => $file->getName(), 'mimeType' => $mimeType, 'contents' => $contents, 'publicUrl' => $file->getPublicUrl(), 'context' => $context];
     }
+
+    /** @return list<int> */
+    public function fileUidsFromFolder(string $combinedIdentifier): array
+    {
+        $folder = $this->resourceFactory->getFolderObjectFromCombinedIdentifier($combinedIdentifier);
+        $fileUids = [];
+        foreach ($folder->getStorage()->getFilesInFolder($folder, 0, 0, true, true) as $file) {
+            if (in_array($file->getMimeType(), ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], true)) {
+                $fileUids[] = $file->getUid();
+            }
+        }
+
+        return $fileUids;
+    }
+
 }

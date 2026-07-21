@@ -6,8 +6,15 @@
       <span class="cf-status"><i></i> Ready to approve</span>
     </header>
 
-    <nav class="cf-product-switch"><f:link.action action="index" controller="Hub">All products</f:link.action><f:link.action action="index" controller="Translation" class="active">Translation</f:link.action><f:link.action action="index" controller="AssetMetadata">Asset Intelligence</f:link.action></nav>
+    <f:render partial="ProductMenu" arguments="{currentProduct: 'AI Translation'}" />
     <div class="cf-jobbar"><span>Job <code>{jobId}</code></span><span><b>{recordCount}</b> record(s)</span><span>{meta.provider} · {meta.model}</span></div>
+    <div class="cf-settings-proof">
+      <div><span class="cf-settings-proof-icon">✓</span><p><b>Project translation settings</b><small>Confirmed by the ContentFlow API for this translation job.</small></p></div>
+      <div class="cf-settings-proof-badges">
+        <f:if condition="{meta.translation_settings.instructions_applied}"><f:then><span class="is-active">✓ Tone and instructions applied</span></f:then><f:else><span class="is-inactive">No tone instructions configured</span></f:else></f:if>
+        <f:if condition="{meta.translation_settings.glossary_entries_applied} > 0"><f:then><span class="is-active">✓ {meta.translation_settings.glossary_entries_applied} glossary entries applied</span></f:then><f:else><span class="is-inactive">No glossary entries configured</span></f:else></f:if>
+      </div>
+    </div>
 
     <div class="cf-card">
       <div class="cf-card-header"><div class="cf-card-title"><span class="cf-step">2</span><h2>Field comparison</h2></div><p>Source content is never modified.</p></div>
@@ -22,7 +29,7 @@
       </f:for>
       <footer class="cf-card-footer">
         <div class="cf-safe"><span>✓</span><p><b>{meta.usage.input_tokens + meta.usage.output_tokens} tokens used</b><br />{meta.usage.input_tokens} input · {meta.usage.output_tokens} output</p></div>
-        <div class="cf-actions"><f:link.action action="index" class="btn btn-default">Discard</f:link.action><f:form action="apply" method="post"><f:form.hidden name="previewToken" value="{previewToken}" /><f:form.submit value="Approve and save" class="btn btn-success cf-primary" /></f:form></div>
+        <div class="cf-actions"><f:link.action action="index" class="btn btn-default">Discard</f:link.action><f:form action="apply" method="post" class="cf-approve-form"><f:form.hidden name="previewToken" value="{previewToken}" /><button type="submit" class="btn btn-success cf-primary cf-approve-submit"><span>Approve and save</span></button></f:form></div>
       </footer>
     </div>
     <f:render partial="Debug/Exchange" arguments="{debug: debug}" />

@@ -76,7 +76,7 @@ final class TranslationController extends ActionController
                 : [
                     'job_id' => 'typo3-structure-'.bin2hex(random_bytes(6)),
                     'records' => [],
-                    'meta' => ['provider' => 'TYPO3', 'model' => 'structural localization', 'usage' => ['input_tokens' => 0, 'output_tokens' => 0]],
+                    'meta' => ['provider' => 'TYPO3', 'model' => 'structural localization', 'usage' => ['input_tokens' => 0, 'output_tokens' => 0], 'translation_settings' => ['instructions_applied' => false, 'glossary_entries_applied' => 0]],
                     '_debug' => null,
                 ];
             foreach ($result['records'] ?? [] as $translatedRecord) {

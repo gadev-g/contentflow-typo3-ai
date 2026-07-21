@@ -28,6 +28,15 @@ final readonly class ContentFlowClient
      */
     public function translate(string $reference, array $fields, string $sourceLanguage, string $targetLanguage, string $provider, ?string $model): array
     {
+        return $this->translateBatch([['reference' => $reference, 'fields' => $fields]], $sourceLanguage, $targetLanguage, $provider, $model);
+    }
+
+    /**
+     * @param list<array{reference: string, fields: array<string, string>}> $records
+     * @return array{job_id: string, records: list<array{reference: string, fields: array<string, string>}>, meta: array<string, mixed>}
+     */
+    public function translateBatch(array $records, string $sourceLanguage, string $targetLanguage, string $provider, ?string $model): array
+    {
         if ('' === trim($this->apiKey)) {
             throw new \RuntimeException('The ContentFlow project API key is not configured in TYPO3 Extension Configuration.');
         }
@@ -36,7 +45,7 @@ final readonly class ContentFlowClient
             'source_language' => $sourceLanguage,
             'target_language' => $targetLanguage,
             'provider' => $provider,
-            'records' => [['reference' => $reference, 'fields' => $fields]],
+            'records' => $records,
         ];
         if (null !== $model && '' !== trim($model)) {
             $payload['model'] = $model;

@@ -23,6 +23,7 @@
 .cf-card-body { padding: 24px 22px 26px; }
 .cf-grid { display: grid; gap: 18px; align-items: end; }
 .cf-grid-record, .cf-grid-provider { grid-template-columns: 1.35fr 1fr; }
+.cf-grid-record { align-items: start; }
 .cf-grid-provider { align-items: start; }
 .cf-grid-language { grid-template-columns: 1fr 34px 1fr; }
 .cf-grid-language { align-items: start; }
@@ -56,6 +57,18 @@
 .cf-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.45); border-top-color: #fff; border-radius: 50%; animation: cf-spin .7s linear infinite; }
 #contentflow-analyze-submit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 154px; }
 #contentflow-analyze-submit[data-loading='true'] { cursor: wait; opacity: .88; }
+#contentflow-translation-submit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 220px; }
+#contentflow-translation-submit[data-loading='true'] { cursor: wait; opacity: .88; }
+#contentflow-translation-submit .cf-submit-loading { display: none; align-items: center; gap: 8px; }
+#contentflow-translation-submit[data-loading] .cf-submit-idle { display: none; }
+#contentflow-translation-submit[data-loading] .cf-submit-loading { display: inline-flex; }
+.cf-scope-select { margin-bottom: 20px !important; }
+.cf-record-list { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+.cf-record-list button { display: inline-flex; align-items: center; gap: 8px; padding: 5px 7px 5px 10px; border: 1px solid #cbd8f5; border-radius: 999px; background: #f1f6ff; color: #315b9f; font-size: 11px; }
+.cf-record-list button b { font-size: 15px; line-height: 1; }
+.cf-record-review + .cf-record-review { border-top: 8px solid #eef2f7; }
+.cf-record-review > h3 { margin: 0; padding: 12px 18px; background: #f7f9fc; font-size: 13px; }
+.cf-record-review > h3 span { color: var(--cf-blue); }
 @keyframes cf-spin { to { transform: rotate(360deg); } }
 .cf-advanced { border-top: 1px solid var(--typo3-component-border-color, #e4e8e6); margin-top: 24px; padding-top: 18px; }
 .cf-advanced summary { color: #69736e; cursor: pointer; font-size: 12px; font-weight: 650; list-style-position: inside; }

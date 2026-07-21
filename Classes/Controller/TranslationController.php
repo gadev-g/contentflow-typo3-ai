@@ -51,29 +51,47 @@ final class TranslationController extends ActionController
         return $module->renderResponse('Translation/Index');
     }
 
-    public function previewAction(string $table, int $uid, string $sourceLanguage, string $targetLanguage, string $provider = '', string $model = ''): ResponseInterface
+    public function previewAction(string $table, int $uid, string $sourceLanguage, string $targetLanguage, string $provider = '', string $model = '', string $scope = 'single', string $uids = ''): ResponseInterface
     {
         try {
             $targetLanguageId = $this->resolveLanguageId($targetLanguage);
-            $uid = $this->resolveRecordUid($table, $uid);
-            $sourceFields = $this->reader->read($table, $uid);
-            if ([] === $sourceFields) {
-                throw new \RuntimeException('No translatable fields were found in this record.');
+            $selection = $this->resolveSelection($scope, $table, $uid, $uids);
+            $requestRecords = [];
+            $previewRecords = [];
+            foreach ($selection as $record) {
+                $sourceFields = $this->reader->read($record['table'], $record['uid']);
+                if ([] === $sourceFields) {
+                    continue;
+                }
+                $reference = $record['table'].':'.$record['uid'];
+                $requestRecords[] = ['reference' => $reference, 'fields' => $sourceFields];
+                $previewRecords[$reference] = $record + ['reference' => $reference, 'sourceFields' => $sourceFields, 'translatedFields' => []];
             }
-            $result = $this->client->translate($table.':'.$uid, $sourceFields, $sourceLanguage, $targetLanguage, $provider, $model);
-            $translatedFields = $result['records'][0]['fields'] ?? [];
+            if ([] === $requestRecords) {
+                throw new \RuntimeException('No translatable fields were found in the selected records.');
+            }
+            $result = $this->client->translateBatch($requestRecords, $sourceLanguage, $targetLanguage, $provider, $model);
+            foreach ($result['records'] ?? [] as $translatedRecord) {
+                $reference = (string) ($translatedRecord['reference'] ?? '');
+                if (isset($previewRecords[$reference])) {
+                    $previewRecords[$reference]['translatedFields'] = $translatedRecord['fields'] ?? [];
+                }
+            }
+            foreach ($previewRecords as $record) {
+                if ([] === $record['translatedFields']) {
+                    throw new \RuntimeException('The provider did not return a translation for '.$record['reference'].'.');
+                }
+            }
+            $previewRecords = array_values($previewRecords);
             $token = bin2hex(random_bytes(24));
             $this->backendUser()->setAndSaveSessionData('contentflow_translation_'.$token, [
-                'table' => $table,
-                'uid' => $uid,
+                'records' => $previewRecords,
                 'targetLanguageId' => $targetLanguageId,
-                'sourceFields' => $sourceFields,
-                'translatedFields' => $translatedFields,
                 'jobId' => $result['job_id'],
                 'createdAt' => time(),
             ]);
             $module = $this->moduleTemplateFactory->create($this->request);
-            $module->assignMultiple(['table' => $table, 'uid' => $uid, 'sourceFields' => $sourceFields, 'translatedFields' => $translatedFields, 'previewToken' => $token, 'jobId' => $result['job_id'], 'meta' => $result['meta'], 'debug' => $result['_debug'] ?? null]);
+            $module->assignMultiple(['records' => $previewRecords, 'recordCount' => count($previewRecords), 'previewToken' => $token, 'jobId' => $result['job_id'], 'meta' => $result['meta'], 'debug' => $result['_debug'] ?? null]);
 
             return $module->renderResponse('Translation/Preview');
         } catch (\Throwable $exception) {
@@ -91,11 +109,15 @@ final class TranslationController extends ActionController
             if (!\is_array($preview) || !isset($preview['createdAt']) || time() - (int) $preview['createdAt'] > 3600) {
                 throw new \RuntimeException('The preview expired. Please create a new translation preview.');
             }
-            /** @var array<string, string> $translatedFields */
-            $translatedFields = $preview['translatedFields'];
-            $localizedUid = $this->writer->write((string) $preview['table'], (int) $preview['uid'], (int) $preview['targetLanguageId'], $translatedFields);
+            $localizedUids = [];
+            foreach ($preview['records'] ?? [] as $record) {
+                $localizedUids[] = $this->writer->write((string) $record['table'], (int) $record['uid'], (int) $preview['targetLanguageId'], (array) $record['translatedFields']);
+            }
+            if ([] === $localizedUids) {
+                throw new \RuntimeException('The preview does not contain any records.');
+            }
             $this->backendUser()->setAndSaveSessionData($sessionKey, null);
-            $this->addFlashMessage('The reviewed translation was saved as localized record '.$localizedUid.'.', 'Translation saved');
+            $this->addFlashMessage(count($localizedUids).' reviewed translation(s) were saved.', 'Translations saved');
         } catch (\Throwable $exception) {
             $this->addFlashMessage($exception->getMessage(), 'Saving failed', ContextualFeedbackSeverity::ERROR);
         }
@@ -159,5 +181,34 @@ final class TranslationController extends ActionController
         }
 
         return (int) $uid;
+    }
+
+    /** @return list<array{table: string, uid: int}> */
+    private function resolveSelection(string $scope, string $table, int $uid, string $uids): array
+    {
+        if ('multiple' === $scope) {
+            $selected = array_values(array_unique(array_filter(array_map('intval', explode(',', $uids)))));
+            if ([] === $selected) {
+                throw new \RuntimeException('Please select at least one content element.');
+            }
+
+            return array_map(static fn (int $selectedUid): array => ['table' => 'tt_content', 'uid' => $selectedUid], $selected);
+        }
+        if ('page' === $scope) {
+            $selection = [['table' => 'pages', 'uid' => $uid]];
+            $query = $this->connectionPool->getQueryBuilderForTable('tt_content');
+            $contentUids = $query->select('uid')->from('tt_content')->where(
+                $query->expr()->eq('pid', $query->createNamedParameter($uid, \Doctrine\DBAL\ParameterType::INTEGER)),
+                $query->expr()->eq('sys_language_uid', $query->createNamedParameter(0, \Doctrine\DBAL\ParameterType::INTEGER)),
+                $query->expr()->eq('hidden', $query->createNamedParameter(0, \Doctrine\DBAL\ParameterType::INTEGER)),
+            )->orderBy('sorting')->executeQuery()->fetchFirstColumn();
+            foreach ($contentUids as $contentUid) {
+                $selection[] = ['table' => 'tt_content', 'uid' => (int) $contentUid];
+            }
+
+            return $selection;
+        }
+
+        return [['table' => $table, 'uid' => $this->resolveRecordUid($table, $uid)]];
     }
 }

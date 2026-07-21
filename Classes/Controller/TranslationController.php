@@ -55,7 +55,7 @@ final class TranslationController extends ActionController
     {
         try {
             $targetLanguageId = $this->resolveLanguageId($targetLanguage);
-            $selection = $this->resolveSelection($scope, $table, $uid, $uids);
+            $selection = $this->expandNestedContent($this->resolveSelection($scope, $table, $uid, $uids));
             $requestRecords = [];
             $previewRecords = [];
             foreach ($selection as $record) {
@@ -210,5 +210,72 @@ final class TranslationController extends ActionController
         }
 
         return [['table' => $table, 'uid' => $this->resolveRecordUid($table, $uid)]];
+    }
+
+    /**
+     * Expand selected containers recursively. This supports EXT:container,
+     * Gridelements, Flux and common project-specific parent relations while
+     * keeping the result stable and free of duplicates.
+     *
+     * @param list<array{table: string, uid: int}> $selection
+     * @return list<array{table: string, uid: int}>
+     */
+    private function expandNestedContent(array $selection): array
+    {
+        $expanded = [];
+        $visited = [];
+        $queue = $selection;
+        $parentRelations = $this->availableContentParentRelations();
+
+        while ([] !== $queue) {
+            $record = array_shift($queue);
+            if (!\is_array($record)) {
+                continue;
+            }
+            $key = $record['table'].':'.$record['uid'];
+            if (isset($visited[$key])) {
+                continue;
+            }
+            $visited[$key] = true;
+            $expanded[] = $record;
+
+            if ('tt_content' !== $record['table']) {
+                continue;
+            }
+            foreach ($parentRelations as $relation) {
+                $query = $this->connectionPool->getQueryBuilderForTable('tt_content');
+                $conditions = [
+                    $query->expr()->eq($relation['field'], $query->createNamedParameter($record['uid'], \Doctrine\DBAL\ParameterType::INTEGER)),
+                    $query->expr()->eq('sys_language_uid', $query->createNamedParameter(0, \Doctrine\DBAL\ParameterType::INTEGER)),
+                ];
+                if (isset($relation['tableField'])) {
+                    $conditions[] = $query->expr()->eq($relation['tableField'], $query->createNamedParameter('tt_content'));
+                }
+                $childUids = $query->select('uid')->from('tt_content')->where(...$conditions)->orderBy('sorting')->executeQuery()->fetchFirstColumn();
+                foreach ($childUids as $childUid) {
+                    $queue[] = ['table' => 'tt_content', 'uid' => (int) $childUid];
+                }
+            }
+        }
+
+        return $expanded;
+    }
+
+    /** @return list<array{field: string, tableField?: string}> */
+    private function availableContentParentRelations(): array
+    {
+        $schemaManager = $this->connectionPool->getConnectionForTable('tt_content')->createSchemaManager();
+        $columns = array_change_key_case($schemaManager->listTableColumns('tt_content'), CASE_LOWER);
+        $relations = [];
+        foreach (['tx_container_parent', 'tx_gridelements_container', 'tx_flux_parent'] as $field) {
+            if (isset($columns[$field])) {
+                $relations[] = ['field' => $field];
+            }
+        }
+        if (isset($columns['parentid'], $columns['parenttable'])) {
+            $relations[] = ['field' => 'parentid', 'tableField' => 'parenttable'];
+        }
+
+        return $relations;
     }
 }

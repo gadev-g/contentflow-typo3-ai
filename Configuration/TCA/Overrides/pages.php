@@ -17,4 +17,7 @@ $fields = [
     ],
 ];
 ExtensionManagementUtility::addTCAcolumns('pages', $fields);
-ExtensionManagementUtility::addToAllTCAtypes('pages', '--div--;ContentFlow SEO,tx_contentflow_focus_keywords,tx_contentflow_schema_org');
+ExtensionManagementUtility::addToAllTCAtypes(
+    'pages',
+    '--div--;ContentFlow SEO,tx_contentflow_focus_keywords,tx_contentflow_schema_org',
+);

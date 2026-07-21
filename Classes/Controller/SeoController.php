@@ -33,14 +33,24 @@ final class SeoController extends ActionController
         } catch (\Throwable $exception) {
             $context = [];
             $providers = [];
-            $this->addFlashMessage($exception->getMessage(), 'Provider configuration unavailable', ContextualFeedbackSeverity::ERROR);
+
+            $this->addFlashMessage(
+                $exception->getMessage(),
+                'Provider configuration unavailable',
+                ContextualFeedbackSeverity::ERROR,
+            );
         }
+
         if (true !== ($context['entitlements']['products']['seo_intelligence'] ?? false)) {
             $module->assign('plan', $context['entitlements']['plan'] ?? 'free');
 
             return $module->renderResponse('Seo/Upgrade');
         }
-        $module->assignMultiple(['providers' => $providers, 'defaultProvider' => $providers[0]['id'] ?? '']);
+
+        $module->assignMultiple([
+            'providers' => $providers,
+            'defaultProvider' => $providers[0]['id'] ?? '',
+        ]);
 
         return $module->renderResponse('Seo/Index');
     }
@@ -51,25 +61,46 @@ final class SeoController extends ActionController
             if (!$this->client->hasProduct('seo_intelligence')) {
                 throw new \RuntimeException('SEO Intelligence requires the Starter plan or higher.');
             }
+
             if ($uid <= 0) {
                 throw new \RuntimeException('Please select a TYPO3 page.');
             }
+
             $pageFields = $this->reader->read('pages', $uid);
             $title = trim((string) ($pageFields['title'] ?? ''));
+
             if ('' === $title) {
                 throw new \RuntimeException('The selected page has no title.');
             }
+
             $content = $this->pageContent($uid, $pageFields);
-            $result = $this->client->analyzeSeo($uid, $title, $content, $language, $provider, '' === trim($model) ? null : $model);
+            $result = $this->client->analyzeSeo(
+                $uid,
+                $title,
+                $content,
+                $language,
+                $provider,
+                '' === trim($model) ? null : $model,
+            );
+
             $metadata = is_array($result['metadata'] ?? null) ? $result['metadata'] : [];
             $token = bin2hex(random_bytes(24));
+
             $this->backendUser()->setAndSaveSessionData('contentflow_seo_' . $token, [
                 'pageUid' => $uid,
                 'metadata' => $metadata,
                 'createdAt' => time(),
             ]);
+
             $module = $this->moduleTemplateFactory->create($this->request);
-            $module->assignMultiple(['pageUid' => $uid, 'pageTitle' => $title, 'metadata' => $metadata, 'meta' => $result['meta'] ?? [], 'debug' => $result['_debug'] ?? null, 'previewToken' => $token]);
+            $module->assignMultiple([
+                'pageUid' => $uid,
+                'pageTitle' => $title,
+                'metadata' => $metadata,
+                'meta' => $result['meta'] ?? [],
+                'debug' => $result['_debug'] ?? null,
+                'previewToken' => $token,
+            ]);
 
             return $module->renderResponse('Seo/Preview');
         } catch (\Throwable $exception) {
@@ -85,18 +116,35 @@ final class SeoController extends ActionController
             if (!$this->client->hasProduct('seo_intelligence')) {
                 throw new \RuntimeException('SEO Intelligence requires the Starter plan or higher.');
             }
+
             $sessionKey = 'contentflow_seo_' . $previewToken;
             $preview = $this->backendUser()->getSessionData($sessionKey);
-            if (!is_array($preview) || !isset($preview['createdAt']) || time() - (int) $preview['createdAt'] > 3600 || !is_array($preview['metadata'] ?? null)) {
+
+            if (
+                !is_array($preview)
+                || !isset($preview['createdAt'])
+                || time() - (int) $preview['createdAt'] > 3600
+                || !is_array($preview['metadata'] ?? null)
+            ) {
                 throw new \RuntimeException('The SEO preview expired. Please analyze the page again.');
             }
+
             $metadata = $preview['metadata'];
+            $schemaOrg = json_encode(
+                $metadata['schema_org'] ?? [],
+                \JSON_THROW_ON_ERROR
+                | \JSON_PRETTY_PRINT
+                | \JSON_UNESCAPED_SLASHES
+                | \JSON_UNESCAPED_UNICODE,
+            );
+
             $this->connectionPool->getConnectionForTable('pages')->update('pages', [
                 'seo_title' => (string) ($metadata['seo_title'] ?? ''),
                 'description' => (string) ($metadata['meta_description'] ?? ''),
                 'tx_contentflow_focus_keywords' => (string) ($metadata['focus_keywords'] ?? ''),
-                'tx_contentflow_schema_org' => json_encode($metadata['schema_org'] ?? [], \JSON_THROW_ON_ERROR | \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE),
+                'tx_contentflow_schema_org' => $schemaOrg,
             ], ['uid' => (int) $preview['pageUid']], ['uid' => ParameterType::INTEGER]);
+
             $this->backendUser()->setAndSaveSessionData($sessionKey, null);
             $this->addFlashMessage('SEO metadata and Schema.org JSON-LD were saved to the page.', 'SEO metadata saved');
         } catch (\Throwable $exception) {
@@ -111,7 +159,19 @@ final class SeoController extends ActionController
     {
         $parts = array_values($pageFields);
         $query = $this->connectionPool->getQueryBuilderForTable('tt_content');
-        $uids = $query->select('uid')->from('tt_content')->where($query->expr()->eq('pid', $query->createNamedParameter($pageUid, ParameterType::INTEGER)))->orderBy('sorting')->executeQuery()->fetchFirstColumn();
+        $uids = $query
+            ->select('uid')
+            ->from('tt_content')
+            ->where(
+                $query->expr()->eq(
+                    'pid',
+                    $query->createNamedParameter($pageUid, ParameterType::INTEGER),
+                ),
+            )
+            ->orderBy('sorting')
+            ->executeQuery()
+            ->fetchFirstColumn();
+
         foreach ($uids as $uid) {
             foreach ($this->reader->read('tt_content', (int) $uid) as $value) {
                 $parts[] = $value;

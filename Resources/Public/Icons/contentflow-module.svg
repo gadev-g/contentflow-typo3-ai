@@ -1,7 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
   <title id="title">ContentFlow AI</title>
-  <defs><linearGradient id="chip" x1="18" y1="18" x2="110" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#16C7F3"/><stop offset=".52" stop-color="#157CF5"/><stop offset="1" stop-color="#3157F6"/></linearGradient></defs>
-  <g fill="none" stroke="url(#chip)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><rect x="25" y="25" width="78" height="78" rx="20"/><path d="M43 25V14M64 25V14M85 25V14M43 114v-11M64 114v-11M85 114v-11M25 43H14M25 64H14M25 85H14M114 43h-11M114 64h-11M114 85h-11"/></g>
-  <path fill="url(#chip)" d="M61.5 38.5c1-3.3 5.7-3.3 6.7 0l3.3 10.8c1.1 3.7 4 6.6 7.7 7.7L90 60.3c3.3 1 3.3 5.7 0 6.7l-10.8 3.3a11.3 11.3 0 0 0-7.7 7.7l-3.3 10.8c-1 3.3-5.7 3.3-6.7 0L58.2 78a11.3 11.3 0 0 0-7.7-7.7L39.7 67c-3.3-1-3.3-5.7 0-6.7L50.5 57c3.7-1.1 6.6-4 7.7-7.7l3.3-10.8Z"/>
-  <path fill="#18BFF0" d="M85.2 36.2c.5-1.7 3-1.7 3.5 0l.8 2.7c.6 1.8 2 3.2 3.8 3.8l2.7.8c1.7.5 1.7 3 0 3.5l-2.7.8a5.8 5.8 0 0 0-3.8 3.8l-.8 2.7c-.5 1.7-3 1.7-3.5 0l-.8-2.7a5.8 5.8 0 0 0-3.8-3.8l-2.7-.8c-1.7-.5-1.7-3 0-3.5l2.7-.8a5.8 5.8 0 0 0 3.8-3.8l.8-2.7Z"/>
+  <defs>
+    <linearGradient id="background" x1="12" y1="10" x2="116" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#12BCE9"/>
+      <stop offset="0.55" stop-color="#2479EF"/>
+      <stop offset="1" stop-color="#7651F4"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="25" fill="url(#background)"/>
+  <g fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="32" y="32" width="64" height="64" rx="15"/>
+    <path d="M47 32v-9M64 32v-9M81 32v-9M47 105v-9M64 105v-9M81 105v-9M32 47h-9M32 64h-9M32 81h-9M105 47h-9M105 64h-9M105 81h-9"/>
+  </g>
+  <path fill="#fff" d="M61.2 43.6c.8-2.7 4.7-2.7 5.5 0l2.7 8.8a10 10 0 0 0 6.3 6.3l8.8 2.7c2.7.8 2.7 4.7 0 5.5l-8.8 2.7a10 10 0 0 0-6.3 6.3l-2.7 8.8c-.8 2.7-4.7 2.7-5.5 0l-2.7-8.8a10 10 0 0 0-6.3-6.3l-8.8-2.7c-2.7-.8-2.7-4.7 0-5.5l8.8-2.7a10 10 0 0 0 6.3-6.3l2.7-8.8Z"/>
+  <circle cx="84" cy="44" r="4" fill="#fff"/>
 </svg>

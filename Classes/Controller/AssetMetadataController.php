@@ -29,8 +29,10 @@ final class AssetMetadataController extends ActionController
     {
         $module = $this->moduleTemplateFactory->create($this->request);
         try {
-            $providers = $this->client->providers();
+            $context = $this->client->integrationContext();
+            $providers = is_array($context['items'] ?? null) ? array_values($context['items']) : [];
         } catch (\Throwable $exception) {
+            $context = [];
             $providers = [];
             $this->addFlashMessage(
                 $exception->getMessage(),
@@ -39,10 +41,17 @@ final class AssetMetadataController extends ActionController
             );
         }
 
+        if (true !== ($context['entitlements']['products']['asset_intelligence'] ?? false)) {
+            $module->assign('plan', $context['entitlements']['plan'] ?? 'free');
+
+            return $module->renderResponse('AssetMetadata/Upgrade');
+        }
+
         $module->assignMultiple([
             'languages' => $this->availableLanguages(),
             'providers' => $providers,
             'defaultProvider' => $providers[0]['id'] ?? '',
+            'products' => $context['entitlements']['products'] ?? [],
         ]);
 
         return $module->renderResponse('AssetMetadata/Index');
@@ -57,6 +66,10 @@ final class AssetMetadataController extends ActionController
         string $model = '',
     ): ResponseInterface {
         try {
+            if (!$this->client->hasProduct('asset_intelligence')) {
+                throw new \RuntimeException('Asset Intelligence requires the Starter plan or higher.');
+            }
+
             $selectedFileUids = array_map(
                 'intval',
                 array_filter(
@@ -156,6 +169,10 @@ final class AssetMetadataController extends ActionController
         $preview = $this->backendUser()->getSessionData($sessionKey);
 
         try {
+            if (!$this->client->hasProduct('asset_intelligence')) {
+                throw new \RuntimeException('Asset Intelligence requires the Starter plan or higher.');
+            }
+
             if (!is_array($preview) || !isset($preview['createdAt']) || time() - (int) $preview['createdAt'] > 3600) {
                 throw new \RuntimeException('The asset preview expired. Please analyze the image again.');
             }

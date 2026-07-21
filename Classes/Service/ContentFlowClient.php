@@ -96,6 +96,14 @@ final readonly class ContentFlowClient
     /** @return list<array{id: string, enabled: bool, configured: bool, capabilities: list<string>}> */
     public function providers(): array
     {
+        $context = $this->integrationContext();
+
+        return is_array($context['items'] ?? null) ? array_values($context['items']) : [];
+    }
+
+    /** @return array<string, mixed> */
+    public function integrationContext(): array
+    {
         if ('' === trim($this->apiKey)) {
             throw new \RuntimeException(
                 'The ContentFlow project API key is not configured in TYPO3 Extension Configuration.',
@@ -115,7 +123,14 @@ final readonly class ContentFlowClient
             );
         }
 
-        return is_array($body['items'] ?? null) ? array_values($body['items']) : [];
+        return $body;
+    }
+
+    public function hasProduct(string $product): bool
+    {
+        $context = $this->integrationContext();
+
+        return true === ($context['entitlements']['products'][$product] ?? false);
     }
 
     /** @return array<string, mixed> */

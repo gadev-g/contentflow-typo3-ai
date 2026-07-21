@@ -31,8 +31,10 @@ final class TranslationController extends ActionController
     {
         $module = $this->moduleTemplateFactory->create($this->request);
         try {
-            $providers = $this->client->providers();
+            $context = $this->client->integrationContext();
+            $providers = is_array($context['items'] ?? null) ? array_values($context['items']) : [];
         } catch (\Throwable $exception) {
+            $context = [];
             $providers = [];
             $this->addFlashMessage(
                 $exception->getMessage(),
@@ -51,6 +53,7 @@ final class TranslationController extends ActionController
             'languages' => $this->availableLanguages(),
             'providers' => $providers,
             'defaultProvider' => $providers[0]['id'] ?? '',
+            'products' => $context['entitlements']['products'] ?? [],
         ]);
 
         return $module->renderResponse('Translation/Index');

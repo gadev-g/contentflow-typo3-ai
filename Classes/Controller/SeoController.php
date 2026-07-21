@@ -84,6 +84,7 @@ final class SeoController extends ActionController
             );
 
             $metadata = is_array($result['metadata'] ?? null) ? $result['metadata'] : [];
+            $schemaOrgFormatted = $this->encodeSchemaOrg($metadata['schema_org'] ?? []);
             $token = bin2hex(random_bytes(24));
 
             $this->backendUser()->setAndSaveSessionData('contentflow_seo_' . $token, [
@@ -130,13 +131,7 @@ final class SeoController extends ActionController
             }
 
             $metadata = $preview['metadata'];
-            $schemaOrg = json_encode(
-                $metadata['schema_org'] ?? [],
-                \JSON_THROW_ON_ERROR
-                | \JSON_PRETTY_PRINT
-                | \JSON_UNESCAPED_SLASHES
-                | \JSON_UNESCAPED_UNICODE,
-            );
+            $schemaOrg = $this->encodeSchemaOrg($metadata['schema_org'] ?? []);
 
             $this->connectionPool->getConnectionForTable('pages')->update('pages', [
                 'seo_title' => (string) ($metadata['seo_title'] ?? ''),
@@ -184,5 +179,16 @@ final class SeoController extends ActionController
     private function backendUser(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
+    }
+
+    private function encodeSchemaOrg(mixed $schemaOrg): string
+    {
+        return json_encode(
+            $schemaOrg,
+            \JSON_THROW_ON_ERROR
+            | \JSON_PRETTY_PRINT
+            | \JSON_UNESCAPED_SLASHES
+            | \JSON_UNESCAPED_UNICODE,
+        );
     }
 }

@@ -70,6 +70,9 @@ const handleAssetSelection = (event) => {
   selectedFolder = '';
   selectedAssets.set(matches[1], String(event.data.label ?? `Asset #${matches[1]}`));
   update();
+  if (event.source) {
+    MessageUtility.send({ actionName: 'typo3:foreignRelation:inserted' }, event.source);
+  }
 };
 
 const handleFolderSelection = (event) => {

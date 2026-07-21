@@ -5,6 +5,7 @@ declare(strict_types=1);
 use ContentFlow\Typo3Translation\Controller\TranslationController;
 use ContentFlow\Typo3Translation\Controller\AssetMetadataController;
 use ContentFlow\Typo3Translation\Controller\HubController;
+use ContentFlow\Typo3Translation\Controller\ImageGenerationController;
 
 return [
     'contentflow_translation' => [
@@ -20,6 +21,7 @@ return [
             HubController::class => ['index'],
             TranslationController::class => ['index', 'preview', 'apply'],
             AssetMetadataController::class => ['index', 'preview', 'apply'],
+            ImageGenerationController::class => ['index'],
         ],
     ],
 ];

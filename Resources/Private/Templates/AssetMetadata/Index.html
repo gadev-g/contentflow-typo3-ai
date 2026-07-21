@@ -11,7 +11,7 @@
       </div>
       <span class="cf-status"><i></i> Vision ready</span>
     </header>
-    <nav class="cf-product-switch"><f:link.action action="index" controller="Hub">All products</f:link.action><f:link.action action="index" controller="Translation">Translation</f:link.action><f:link.action action="index" controller="AssetMetadata" class="active">Asset Intelligence</f:link.action></nav>
+    <f:render partial="ProductMenu" arguments="{currentProduct: 'Asset Intelligence'}" />
     <f:flashMessages />
     <f:form action="preview" method="post" class="cf-card cf-asset-form">
       <div class="cf-card-header"><div class="cf-card-title"><span class="cf-step">1</span><h2>Select and analyze</h2></div><p>The original file is never modified.</p></div>

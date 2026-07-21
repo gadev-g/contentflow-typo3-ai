@@ -15,7 +15,7 @@
       <span class="cf-status"><i></i> API connected</span>
     </header>
 
-    <nav class="cf-product-switch"><f:link.action action="index" controller="Hub">All products</f:link.action><f:link.action action="index" controller="Translation" class="active">Translation</f:link.action><f:link.action action="index" controller="AssetMetadata">Asset Intelligence</f:link.action></nav>
+    <f:render partial="ProductMenu" arguments="{currentProduct: 'AI Translation'}" />
 
     <f:flashMessages />
 

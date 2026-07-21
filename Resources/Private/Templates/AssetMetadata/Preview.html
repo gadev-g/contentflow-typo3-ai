@@ -2,7 +2,7 @@
 <f:section name="Content">
   <div class="cf-module">
     <header class="cf-hero"><div class="cf-brand-copy"><span class="cf-eyebrow">ASSET INTELLIGENCE · REVIEW</span><div class="cf-main-row"><div class="cf-logo cf-logo-wordmark"><img src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}" alt="ContentFlow AI" /></div><div class="cf-heading"><h1>Review metadata</h1><p>Approve the generated fields before writing them to TYPO3.</p></div></div></div><span class="cf-status"><i></i> Analysis complete</span></header>
-    <nav class="cf-product-switch"><f:link.action action="index" controller="Hub">All products</f:link.action><f:link.action action="index" controller="Translation">Translation</f:link.action><f:link.action action="index" controller="AssetMetadata" class="active">Asset Intelligence</f:link.action></nav>
+    <f:render partial="ProductMenu" arguments="{currentProduct: 'Asset Intelligence'}" />
     <div class="cf-jobbar"><span>Asset <b>{fileName}</b></span><span>UID <b>{fileUid}</b></span><span>{meta.provider} · {meta.model}</span></div>
     <div class="cf-asset-review">
       <aside class="cf-asset-preview"><img src="{publicUrl}" alt="Selected TYPO3 asset preview" /><small>{fileName}</small></aside>

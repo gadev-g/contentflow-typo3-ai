@@ -27,21 +27,21 @@
       <div class="cf-card-body">
         <div class="form-group cf-scope-select">
           <label for="scope">Translation scope</label>
-          <f:form.select name="scope" id="scope" class="form-select" options="{single: 'Single record', multiple: 'Multiple content elements', page: 'Complete page with all content elements'}" />
+          <f:form.select name="scope" id="scope" value="{preselectedScope}" class="form-select" options="{single: 'Single record', multiple: 'Multiple content elements', page: 'Complete page with all content elements'}" />
           <small>Translate one record, a custom selection, or the page record together with all visible default-language content.</small>
         </div>
         <div class="cf-grid cf-grid-record">
           <div class="form-group">
             <label for="table">What would you like to translate?</label>
-            <f:form.select name="table" id="table" options="{tables}" class="form-select" />
+            <f:form.select name="table" id="table" value="{preselectedTable}" options="{tables}" class="form-select" />
             <small>Choose a page, content element, asset, or file reference</small>
           </div>
           <div class="form-group cf-record-picker">
             <label>Content</label>
-            <f:form.hidden name="uid" id="uid" />
+            <f:form.hidden name="uid" id="uid" value="{preselectedUid}" />
             <f:form.hidden name="uids" id="uids" />
             <button type="button" id="contentflow-record-picker" class="btn btn-default cf-picker-button">Select record</button>
-            <small id="contentflow-record-selection">No record selected yet</small>
+            <small id="contentflow-record-selection"><f:if condition="{preselectedUid}"><f:then>Page #{preselectedUid} selected</f:then><f:else>No record selected yet</f:else></f:if></small>
             <div id="contentflow-record-list" class="cf-record-list"></div>
           </div>
         </div>
@@ -57,7 +57,7 @@
           <div class="cf-arrow">→</div>
           <div class="form-group">
             <label for="targetLanguage">Translate to</label>
-            <f:form.select name="targetLanguage" id="targetLanguage" class="form-select" required="true">
+            <f:form.select name="targetLanguage" id="targetLanguage" value="{preselectedTargetLanguage}" class="form-select" required="true">
               <f:for each="{languages}" as="language"><f:if condition="!{language.isDefault}"><option value="{language.code}">{language.title} ({language.code})</option></f:if></f:for>
             </f:form.select>
             <small>The TYPO3 language ID is detected automatically</small>

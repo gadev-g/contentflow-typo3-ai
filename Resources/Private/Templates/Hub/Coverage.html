@@ -1,0 +1,63 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" xmlns:be="http://typo3.org/ns/TYPO3/CMS/Backend/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:layout name="Module" />
+<f:section name="Content">
+  <div class="cf-module cf-coverage-page">
+    <header class="cf-coverage-hero">
+      <div>
+        <span class="cf-eyebrow">CONTENTFLOW · CONTENT STATUS</span>
+        <h1>Content coverage</h1>
+        <p>Track translation, SEO, and image metadata across your TYPO3 installation.</p>
+      </div>
+      <f:link.action action="index" controller="Hub" class="btn btn-default">Back to assistants</f:link.action>
+    </header>
+    <f:render partial="ProductMenu" arguments="{currentProduct: 'Content Status'}" />
+
+    <section class="cf-coverage-overview">
+      <article>
+        <div class="cf-coverage-icon is-translation">文</div>
+        <div class="cf-coverage-metric"><span>PAGE TRANSLATIONS</span><strong>{coverage.summary.translatedPagePercent}%</strong><p>{coverage.summary.translatedPages} of {coverage.summary.pages} pages</p></div>
+        <div class="cf-progress"><i style="width: {coverage.summary.translatedPagePercent}%"></i></div>
+      </article>
+      <article>
+        <div class="cf-coverage-icon is-seo"><f:render partial="Icon/Seo" /></div>
+        <div class="cf-coverage-metric"><span>SEO COVERAGE</span><strong>{coverage.summary.seoPagePercent}%</strong><p>{coverage.summary.seoPages} of {coverage.summary.pages} pages</p></div>
+        <div class="cf-progress"><i style="width: {coverage.summary.seoPagePercent}%"></i></div>
+      </article>
+      <article>
+        <div class="cf-coverage-icon is-assets">◎</div>
+        <div class="cf-coverage-metric"><span>IMAGE METADATA</span><strong>{coverage.summary.enrichedAssetPercent}%</strong><p>{coverage.summary.enrichedAssets} of {coverage.summary.images} images</p></div>
+        <div class="cf-progress"><i style="width: {coverage.summary.enrichedAssetPercent}%"></i></div>
+      </article>
+      <article>
+        <div class="cf-coverage-icon is-language">A</div>
+        <div class="cf-coverage-metric"><span>METADATA TRANSLATIONS</span><strong>{coverage.summary.translatedAssets}</strong><p>Localized image records</p></div>
+      </article>
+    </section>
+
+    <section class="cf-status-card">
+      <header><div><span class="cf-eyebrow">PAGES</span><h2>Translation and SEO</h2></div><small>Showing the latest 50 default-language pages</small></header>
+      <div class="cf-coverage-table-wrap"><table class="cf-status-table"><thead><tr><th>Page</th><th>Translation</th><th>SEO status</th><th></th></tr></thead><tbody>
+        <f:for each="{coverage.pages}" as="page"><tr>
+          <td><strong>{page.title}</strong><small>UID {page.uid}</small></td>
+          <td><f:if condition="{page.translationCount}"><f:then><span class="cf-status-pill is-success"><i></i>{page.translationCount} available</span></f:then><f:else><span class="cf-status-pill"><i></i>Not translated</span></f:else></f:if></td>
+          <td><f:if condition="{page.hasSeo}"><f:then><span class="cf-status-pill is-success"><i></i>SEO available</span></f:then><f:else><span class="cf-status-pill is-warning"><i></i>SEO missing</span></f:else></f:if></td>
+          <td><be:link.editRecord uid="{page.uid}" table="pages" class="cf-record-link">Open <span>→</span></be:link.editRecord></td>
+        </tr></f:for>
+      </tbody></table></div>
+    </section>
+
+    <section class="cf-status-card">
+      <header><div><span class="cf-eyebrow">FILELIST</span><h2>Image accessibility</h2></div><small>Showing the latest 50 image metadata records</small></header>
+      <div class="cf-coverage-table-wrap"><table class="cf-status-table"><thead><tr><th>Image</th><th>Alt text</th><th>Metadata</th><th>Translation</th><th></th></tr></thead><tbody>
+        <f:for each="{coverage.assets}" as="asset"><tr>
+          <td><strong>{asset.file_name}</strong><small>{asset.identifier}</small></td>
+          <td><f:if condition="{asset.hasAltText}"><f:then><span class="cf-status-pill is-success"><i></i>Available</span></f:then><f:else><span class="cf-status-pill is-warning"><i></i>Missing</span></f:else></f:if></td>
+          <td><f:if condition="{asset.hasMetadata}"><f:then><span class="cf-status-pill is-success"><i></i>Enriched</span></f:then><f:else><span class="cf-status-pill"><i></i>Empty</span></f:else></f:if></td>
+          <td><f:if condition="{asset.translationCount}"><f:then><span class="cf-status-pill is-success"><i></i>{asset.translationCount} available</span></f:then><f:else><span class="cf-status-pill"><i></i>Not translated</span></f:else></f:if></td>
+          <td><be:link.editRecord uid="{asset.uid}" table="sys_file_metadata" class="cf-record-link">Open <span>→</span></be:link.editRecord></td>
+        </tr></f:for>
+      </tbody></table></div>
+    </section>
+  </div>
+</f:section>
+</html>

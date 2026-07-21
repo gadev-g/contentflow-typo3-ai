@@ -30,9 +30,13 @@ final class TranslationController extends ActionController
     public function indexAction(): ResponseInterface
     {
         $module = $this->moduleTemplateFactory->create($this->request);
+        $preselectedUid = $this->request->hasArgument('uid') ? (int) $this->request->getArgument('uid') : 0;
+        $preselectedTargetLanguage = $this->request->hasArgument('targetLanguage')
+            ? (string) $this->request->getArgument('targetLanguage')
+            : '';
         try {
             $context = $this->client->integrationContext();
-            $providers = is_array($context['items'] ?? null) ? array_values($context['items']) : [];
+            $providers = \is_array($context['items'] ?? null) ? array_values($context['items']) : [];
         } catch (\Throwable $exception) {
             $context = [];
             $providers = [];
@@ -54,6 +58,10 @@ final class TranslationController extends ActionController
             'providers' => $providers,
             'defaultProvider' => $providers[0]['id'] ?? '',
             'products' => $context['entitlements']['products'] ?? [],
+            'preselectedUid' => $preselectedUid,
+            'preselectedTable' => $preselectedUid > 0 ? 'pages' : '',
+            'preselectedScope' => $preselectedUid > 0 ? 'page' : '',
+            'preselectedTargetLanguage' => $preselectedTargetLanguage,
         ]);
 
         return $module->renderResponse('Translation/Index');
@@ -77,7 +85,7 @@ final class TranslationController extends ActionController
 
             foreach ($selection as $record) {
                 $sourceFields = $this->reader->read($record['table'], $record['uid']);
-                $reference = $record['table'] . ':' . $record['uid'];
+                $reference = $record['table'].':'.$record['uid'];
                 $previewRecords[$reference] = $record + [
                     'reference' => $reference,
                     'sourceFields' => $sourceFields,
@@ -99,7 +107,7 @@ final class TranslationController extends ActionController
                     $model,
                 )
                 : [
-                    'job_id' => 'typo3-structure-' . bin2hex(random_bytes(6)),
+                    'job_id' => 'typo3-structure-'.bin2hex(random_bytes(6)),
                     'records' => [],
                     'meta' => [
                         'provider' => 'TYPO3',
@@ -125,16 +133,14 @@ final class TranslationController extends ActionController
 
             foreach ($previewRecords as $record) {
                 if ([] !== $record['sourceFields'] && [] === $record['translatedFields']) {
-                    throw new \RuntimeException(
-                        'The provider did not return a translation for ' . $record['reference'] . '.',
-                    );
+                    throw new \RuntimeException('The provider did not return a translation for '.$record['reference'].'.');
                 }
             }
 
             $previewRecords = array_values($previewRecords);
             $token = bin2hex(random_bytes(24));
 
-            $this->backendUser()->setAndSaveSessionData('contentflow_translation_' . $token, [
+            $this->backendUser()->setAndSaveSessionData('contentflow_translation_'.$token, [
                 'records' => $previewRecords,
                 'targetLanguageId' => $targetLanguageId,
                 'jobId' => $result['job_id'],
@@ -144,7 +150,7 @@ final class TranslationController extends ActionController
             $module = $this->moduleTemplateFactory->create($this->request);
             $module->assignMultiple([
                 'records' => $previewRecords,
-                'recordCount' => count($previewRecords),
+                'recordCount' => \count($previewRecords),
                 'previewToken' => $token,
                 'jobId' => $result['job_id'],
                 'meta' => $result['meta'],
@@ -161,7 +167,7 @@ final class TranslationController extends ActionController
 
     public function applyAction(string $previewToken): ResponseInterface
     {
-        $sessionKey = 'contentflow_translation_' . $previewToken;
+        $sessionKey = 'contentflow_translation_'.$previewToken;
         $preview = $this->backendUser()->getSessionData($sessionKey);
 
         try {
@@ -186,7 +192,7 @@ final class TranslationController extends ActionController
 
             $this->backendUser()->setAndSaveSessionData($sessionKey, null);
             $this->addFlashMessage(
-                count($localizedUids) . ' reviewed translation(s) were saved.',
+                \count($localizedUids).' reviewed translation(s) were saved.',
                 'Translations saved',
             );
         } catch (\Throwable $exception) {
@@ -320,6 +326,7 @@ final class TranslationController extends ActionController
      * keeping the result stable and free of duplicates.
      *
      * @param list<array{table: string, uid: int}> $selection
+     *
      * @return list<array{table: string, uid: int}>
      */
     private function expandNestedContent(array $selection): array
@@ -336,7 +343,7 @@ final class TranslationController extends ActionController
                 continue;
             }
 
-            $key = $record['table'] . ':' . $record['uid'];
+            $key = $record['table'].':'.$record['uid'];
 
             if (isset($visited[$key])) {
                 continue;
@@ -390,8 +397,9 @@ final class TranslationController extends ActionController
      * A child can only be localized after its connected container translation
      * exists. Add missing ancestors and keep them before the selected child.
      *
-     * @param list<array{table: string, uid: int}> $selection
+     * @param list<array{table: string, uid: int}>            $selection
      * @param list<array{field: string, tableField?: string}> $relations
+     *
      * @return list<array{table: string, uid: int}>
      */
     private function includeContainerAncestors(array $selection, array $relations): array
@@ -400,7 +408,7 @@ final class TranslationController extends ActionController
         $added = [];
 
         $add = function (array $record) use (&$add, &$ordered, &$added, $relations): void {
-            $key = $record['table'] . ':' . $record['uid'];
+            $key = $record['table'].':'.$record['uid'];
 
             if (isset($added[$key])) {
                 return;
@@ -466,7 +474,7 @@ final class TranslationController extends ActionController
     private function availableContentParentRelations(): array
     {
         $schemaManager = $this->connectionPool->getConnectionForTable('tt_content')->createSchemaManager();
-        $columns = array_change_key_case($schemaManager->listTableColumns('tt_content'), CASE_LOWER);
+        $columns = array_change_key_case($schemaManager->listTableColumns('tt_content'), \CASE_LOWER);
         $relations = [];
 
         foreach (['tx_container_parent', 'tx_gridelements_container', 'tx_flux_parent'] as $field) {

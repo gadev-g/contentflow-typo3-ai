@@ -27,9 +27,10 @@ final class SeoController extends ActionController
     public function indexAction(): ResponseInterface
     {
         $module = $this->moduleTemplateFactory->create($this->request);
+        $preselectedUid = $this->request->hasArgument('uid') ? (int) $this->request->getArgument('uid') : 0;
         try {
             $context = $this->client->integrationContext();
-            $providers = is_array($context['items'] ?? null) ? array_values($context['items']) : [];
+            $providers = \is_array($context['items'] ?? null) ? array_values($context['items']) : [];
         } catch (\Throwable $exception) {
             $context = [];
             $providers = [];
@@ -50,6 +51,7 @@ final class SeoController extends ActionController
         $module->assignMultiple([
             'providers' => $providers,
             'defaultProvider' => $providers[0]['id'] ?? '',
+            'preselectedUid' => $preselectedUid,
         ]);
 
         return $module->renderResponse('Seo/Index');
@@ -83,11 +85,11 @@ final class SeoController extends ActionController
                 '' === trim($model) ? null : $model,
             );
 
-            $metadata = is_array($result['metadata'] ?? null) ? $result['metadata'] : [];
+            $metadata = \is_array($result['metadata'] ?? null) ? $result['metadata'] : [];
             $schemaOrgFormatted = $this->encodeSchemaOrg($metadata['schema_org'] ?? []);
             $token = bin2hex(random_bytes(24));
 
-            $this->backendUser()->setAndSaveSessionData('contentflow_seo_' . $token, [
+            $this->backendUser()->setAndSaveSessionData('contentflow_seo_'.$token, [
                 'pageUid' => $uid,
                 'metadata' => $metadata,
                 'createdAt' => time(),
@@ -119,14 +121,14 @@ final class SeoController extends ActionController
                 throw new \RuntimeException('SEO Intelligence requires the Starter plan or higher.');
             }
 
-            $sessionKey = 'contentflow_seo_' . $previewToken;
+            $sessionKey = 'contentflow_seo_'.$previewToken;
             $preview = $this->backendUser()->getSessionData($sessionKey);
 
             if (
-                !is_array($preview)
+                !\is_array($preview)
                 || !isset($preview['createdAt'])
                 || time() - (int) $preview['createdAt'] > 3600
-                || !is_array($preview['metadata'] ?? null)
+                || !\is_array($preview['metadata'] ?? null)
             ) {
                 throw new \RuntimeException('The SEO preview expired. Please analyze the page again.');
             }

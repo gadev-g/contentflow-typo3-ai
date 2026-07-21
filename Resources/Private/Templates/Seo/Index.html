@@ -1,0 +1,31 @@
+<f:layout name="Module" />
+<f:section name="Content">
+  <div class="cf-module">
+    <header class="cf-hero">
+      <div class="cf-brand-copy"><span class="cf-eyebrow">CONTENTFLOW AI · SEO INTELLIGENCE</span><div class="cf-main-row"><div class="cf-logo cf-logo-wordmark"><img src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}" alt="ContentFlow AI" /></div><div class="cf-heading"><h1>SEO Intelligence</h1><p>Generate page metadata and evidence-based Schema.org JSON-LD directly in TYPO3.</p></div></div></div>
+      <span class="cf-status"><i></i> Starter product</span>
+    </header>
+    <f:render partial="ProductMenu" arguments="{currentProduct: 'SEO Intelligence'}" />
+    <f:flashMessages />
+    <f:form action="preview" method="post" class="cf-card cf-translation-form">
+      <div class="cf-card-header"><div class="cf-card-title"><span class="cf-step">1</span><h2>Analyze a TYPO3 page</h2></div><p>ContentFlow reads the page and its visible content elements.</p></div>
+      <div class="cf-card-body">
+        <div class="cf-grid cf-grid-record">
+          <div class="form-group cf-record-picker">
+            <label>TYPO3 page</label>
+            <f:form.hidden name="uid" id="uid" />
+            <f:form.hidden name="uids" id="uids" />
+            <f:form.select name="scope" id="scope" class="cf-visually-hidden" options="{page: 'Complete page'}" />
+            <f:form.select name="table" id="table" class="cf-visually-hidden" options="{pages: 'Page'}" />
+            <button type="button" id="contentflow-record-picker" class="btn btn-default cf-picker-button">Select page</button>
+            <small id="contentflow-record-selection">No page selected yet</small>
+            <div id="contentflow-record-list" class="cf-record-list"></div>
+          </div>
+          <div class="form-group"><label for="language">Output language</label><f:form.textfield name="language" id="language" value="de" class="form-control" required="true" /><small>ISO language code, for example de or en.</small></div>
+        </div>
+        <details class="cf-advanced"><summary>Advanced AI settings</summary><div class="cf-grid cf-grid-provider"><div class="form-group"><label for="provider">Provider</label><f:form.select name="provider" id="provider" value="{defaultProvider}" class="form-select" required="true"><f:for each="{providers}" as="provider"><option value="{provider.id}">{provider.id}</option></f:for></f:form.select></div><div class="form-group"><label for="model">Model <span>optional</span></label><f:form.textfield name="model" id="model" class="form-control" placeholder="Use provider default" /></div></div></details>
+      </div>
+      <footer class="cf-card-footer"><div class="cf-safe"><span>✓</span><p><b>Review-first SEO</b><br />Nothing is written until you approve the preview.</p></div><button type="submit" id="contentflow-translation-submit" class="btn btn-primary cf-primary" disabled><span class="cf-submit-idle">Create SEO preview <span>→</span></span><span class="cf-submit-loading"><span class="cf-spinner" aria-hidden="true"></span> Analyzing page …</span></button></footer>
+    </f:form>
+  </div>
+</f:section>

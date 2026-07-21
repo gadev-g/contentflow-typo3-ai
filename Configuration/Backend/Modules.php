@@ -7,6 +7,7 @@ use ContentFlow\Typo3Translation\Controller\AssetMetadataController;
 use ContentFlow\Typo3Translation\Controller\HubController;
 use ContentFlow\Typo3Translation\Controller\ImageGenerationController;
 use ContentFlow\Typo3Translation\Controller\ContentCreatorController;
+use ContentFlow\Typo3Translation\Controller\SeoController;
 
 return [
     'contentflow_translation' => [
@@ -24,6 +25,7 @@ return [
             AssetMetadataController::class => ['index', 'preview', 'apply'],
             ImageGenerationController::class => ['index'],
             ContentCreatorController::class => ['index'],
+            SeoController::class => ['index', 'preview', 'apply'],
         ],
     ],
 ];

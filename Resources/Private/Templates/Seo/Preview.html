@@ -1,0 +1,14 @@
+<f:layout name="Module" />
+<f:section name="Content">
+  <div class="cf-module">
+    <header class="cf-hero"><div class="cf-brand-copy"><span class="cf-eyebrow">CONTENTFLOW AI · SEO INTELLIGENCE</span><div class="cf-main-row"><div class="cf-logo cf-logo-wordmark"><img src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}" alt="ContentFlow AI" /></div><div class="cf-heading"><h1>Review SEO proposal</h1><p>{pageTitle} · Page #{pageUid}</p></div></div></div><span class="cf-status"><i></i> Preview ready</span></header>
+    <f:render partial="ProductMenu" arguments="{currentProduct: 'SEO Intelligence'}" />
+    <section class="cf-card"><div class="cf-card-header"><div class="cf-card-title"><span class="cf-step">2</span><h2>SEO metadata and Schema.org</h2></div><p>Review the generated values before saving.</p></div><div class="cf-card-body cf-seo-preview">
+      <div><span>SEO TITLE</span><strong>{metadata.seo_title}</strong></div>
+      <div><span>META DESCRIPTION</span><p>{metadata.meta_description}</p></div>
+      <div><span>FOCUS KEYWORDS</span><p>{metadata.focus_keywords}</p></div>
+      <div class="cf-seo-schema"><span>SCHEMA.ORG JSON-LD</span><pre>{metadata.schema_org -> f:format.json()}</pre></div>
+    </div><footer class="cf-card-footer"><f:link.action action="index" class="btn btn-default">Back</f:link.action><f:form action="apply" method="post" class="cf-approve-form"><f:form.hidden name="previewToken" value="{previewToken}" /><button type="submit" class="btn btn-primary cf-primary cf-approve-submit"><span>Approve and save</span></button></f:form></footer></section>
+    <f:if condition="{debug}"><details class="cf-debug"><summary><span class="cf-debug-dot"></span> Debug exchange</summary><div class="cf-debug-body"><pre>{debug -> f:format.json()}</pre></div></details></f:if>
+  </div>
+</f:section>

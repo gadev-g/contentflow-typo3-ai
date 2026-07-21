@@ -1,0 +1,8 @@
+# Render reviewed ContentFlow Schema.org metadata in the page head.
+page.headerData.174210 = TEXT
+page.headerData.174210 {
+    data = page:tx_contentflow_schema_org
+    trim = 1
+    required = 1
+    wrap = <script type="application/ld+json">|</script>
+}

@@ -19,6 +19,10 @@
           </f:link.action>
         </f:else>
       </f:if>
+      <f:if condition="{products.seo_intelligence}">
+        <f:then><f:link.action action="index" controller="Seo" class="cf-product-card cf-product-card-seo"><div class="cf-product-icon">SEO</div><span class="cf-product-label">SEO INTELLIGENCE</span><h2>Optimize pages</h2><p>Generate metadata, focus keywords and evidence-based Schema.org JSON-LD.</p><ul><li>Complete page analysis</li><li>Structured data suggestions</li><li>Review before saving</li></ul><strong>Open SEO Intelligence <span>→</span></strong></f:link.action></f:then>
+        <f:else><f:link.action action="index" controller="Seo" class="cf-product-card cf-product-card-seo cf-product-card-locked"><em>STARTER</em><div class="cf-product-icon">SEO</div><span class="cf-product-label">SEO INTELLIGENCE</span><h2>Optimize pages</h2><p>Upgrade to Starter for automatic metadata and Schema.org proposals.</p><ul><li>SEO title and description</li><li>Focus keywords</li><li>Structured data</li></ul><strong>Unlock with Starter <span>→</span></strong></f:link.action></f:else>
+      </f:if>
       <f:link.action action="index" controller="ImageGeneration" class="cf-product-card cf-product-card-generation">
         <em>STARTER · COMING SOON</em><div class="cf-product-icon">✦</div><span class="cf-product-label">AI IMAGE GENERATION</span><h2>Generate images</h2><p>Create new visuals, variations and metadata directly in your TYPO3 editorial workflow.</p><ul><li>Prompt-based generation</li><li>TYPO3 Filelist integration</li><li>Review before storage</li></ul><strong>View preview <span>→</span></strong>
       </f:link.action>

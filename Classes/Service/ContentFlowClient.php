@@ -134,6 +134,46 @@ final readonly class ContentFlowClient
     }
 
     /** @return array<string, mixed> */
+    public function analyzeSeo(
+        int $pageUid,
+        string $title,
+        string $content,
+        string $language,
+        string $provider,
+        ?string $model,
+        string $url = '',
+    ): array {
+        $payload = [
+            'reference' => 'pages:' . $pageUid,
+            'title' => $title,
+            'content' => $content,
+            'language' => $language,
+            'provider' => $provider,
+            'url' => $url,
+        ];
+        if (null !== $model && '' !== trim($model)) {
+            $payload['model'] = $model;
+        }
+
+        $response = $this->requestFactory->request(
+            rtrim($this->baseUrl, '/') . '/api/v1/integrations/typo3/seo/analyze',
+            'POST',
+            [
+                'headers' => ['X-API-Key' => $this->apiKey, 'Content-Type' => 'application/json'],
+                'body' => json_encode($payload, \JSON_THROW_ON_ERROR),
+                'timeout' => 180,
+            ],
+        );
+        /** @var array<string, mixed> $body */
+        $body = json_decode((string) $response->getBody(), true, 512, \JSON_THROW_ON_ERROR);
+        if ($response->getStatusCode() >= 300) {
+            throw new \RuntimeException((string) ($body['error']['message'] ?? 'ContentFlow SEO analysis failed.'));
+        }
+
+        return $this->withDebug($body, '/api/v1/integrations/typo3/seo/analyze', $payload, $response->getStatusCode());
+    }
+
+    /** @return array<string, mixed> */
     public function analyzeAsset(
         string $reference,
         string $mimeType,

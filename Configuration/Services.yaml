@@ -16,5 +16,8 @@ services:
   ContentFlow\Typo3Translation\Controller\HubController:
     public: true
 
+  ContentFlow\Typo3Translation\Controller\SeoController:
+    public: true
+
   ContentFlow\Typo3Translation\Service\ContentFlowClient:
     public: false

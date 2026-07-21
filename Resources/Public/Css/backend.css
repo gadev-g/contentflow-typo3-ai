@@ -124,7 +124,9 @@
 .cf-product-card-vision .cf-product-icon { background: linear-gradient(135deg, var(--cf-blue), var(--cf-violet), var(--cf-magenta)); }
 .cf-product-label { color: var(--cf-blue); font-size: 10px; font-weight: 800; letter-spacing: 1.1px; }
 .cf-product-card-vision .cf-product-label { color: var(--cf-violet); }
-.cf-product-card-seo .cf-product-icon { background: linear-gradient(135deg,#0b74ff,#16c7aa); font-size: 12px; }
+.cf-product-card-seo .cf-product-icon { background: linear-gradient(135deg,#0b74ff,#16c7aa); }
+.cf-seo-icon { width: 27px; height: 27px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.cf-product-menu .cf-seo-icon { width: 20px; height: 20px; }
 .cf-seo-preview { display: grid; gap: 14px; }
 .cf-seo-preview > div { padding: 16px; border: 1px solid #dce5f2; border-radius: 12px; background: #f8faff; }
 .cf-seo-preview span { display: block; margin-bottom: 7px; color: var(--cf-blue); font-size: 10px; font-weight: 800; letter-spacing: .08em; }

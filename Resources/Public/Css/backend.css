@@ -124,6 +124,15 @@
 .cf-product-card-vision .cf-product-icon { background: linear-gradient(135deg, var(--cf-blue), var(--cf-violet), var(--cf-magenta)); }
 .cf-product-label { color: var(--cf-blue); font-size: 10px; font-weight: 800; letter-spacing: 1.1px; }
 .cf-product-card-vision .cf-product-label { color: var(--cf-violet); }
+.cf-product-card-seo .cf-product-icon { background: linear-gradient(135deg,#0b74ff,#16c7aa); }
+.cf-seo-icon { width: 27px; height: 27px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.cf-product-menu .cf-seo-icon { width: 20px; height: 20px; }
+.cf-seo-preview { display: grid; gap: 14px; }
+.cf-seo-preview > div { padding: 16px; border: 1px solid #dce5f2; border-radius: 12px; background: #f8faff; }
+.cf-seo-preview span { display: block; margin-bottom: 7px; color: var(--cf-blue); font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+.cf-seo-preview p,.cf-seo-preview strong { margin: 0; color: #26354a; line-height: 1.5; }
+.cf-seo-schema pre { max-height: 360px; margin: 0; padding: 14px; overflow: auto; border-radius: 9px; background: #0b1325; color: #dce8ff; white-space: pre-wrap; }
+.cf-visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
 .cf-product-card h2 { margin: 5px 0 8px; font-size: 21px; }
 .cf-product-card p { min-height: 39px; color: #697486; line-height: 1.5; }
 .cf-product-card ul { margin: 20px 0 25px; padding: 0; list-style: none; color: #536074; font-size: 12px; }
@@ -141,6 +150,10 @@
 .cf-coming-card { display: grid; grid-template-columns: .8fr 1.2fr; gap: 45px; align-items: center; padding: 45px; border: 1px solid #dfe5f0; border-radius: 18px; background: linear-gradient(145deg,#fff,#f3f0ff); box-shadow: 0 18px 50px rgba(35,56,98,.08); }.cf-coming-card h2 { margin: 8px 0 15px; font-size: 29px; }.cf-coming-card p,.cf-coming-card li { color: #657286; line-height: 1.65; }.cf-coming-card ul { padding-left: 20px; }.cf-coming-card a { display: inline-block; margin-top: 12px; color: var(--cf-blue); font-weight: 700; text-decoration: none; }.cf-coming-visual { position: relative; display: grid; place-items: center; min-height: 270px; overflow: hidden; border-radius: 16px; background: radial-gradient(circle at 65% 35%,rgba(31,190,241,.7),transparent 30%),linear-gradient(145deg,#13213d,#5839b9 65%,#bf2de3); }.cf-coming-visual>span { position: relative; z-index: 2; color: #fff; font-size: 72px; text-shadow: 0 10px 35px rgba(0,0,0,.3); }.cf-coming-visual i { position: absolute; width: 90px; height: 90px; border: 1px solid rgba(255,255,255,.22); border-radius: 22px; transform: rotate(18deg); }.cf-coming-visual i:nth-of-type(1){left:25px;top:35px}.cf-coming-visual i:nth-of-type(2){right:18px;bottom:22px;width:130px;height:130px}.cf-coming-visual i:nth-of-type(3){left:75px;bottom:-35px;width:150px;height:150px}
 .cf-coming-visual-content { background: radial-gradient(circle at 65% 35%,rgba(31,190,241,.75),transparent 30%),linear-gradient(145deg,#10233c,#205bc0 58%,#7654f6); }
 .cf-upgrade-card { display: grid; grid-template-columns: .75fr 1.25fr; gap: 45px; align-items: center; padding: 45px; border: 1px solid #dfe5f0; border-radius: 18px; background: linear-gradient(145deg,#fff,#eef6ff 60%,#f5efff); box-shadow: 0 18px 50px rgba(35,56,98,.08); }.cf-upgrade-card h2 { margin: 8px 0 15px; font-size: 29px; }.cf-upgrade-card p,.cf-upgrade-card li { color: #657286; line-height: 1.65; }.cf-upgrade-card ul { padding-left: 20px; }.cf-upgrade-card a { display: inline-block; margin-top: 12px; color: var(--cf-blue); font-weight: 700; text-decoration: none; }
+.cf-provider-required { margin-top: 24px; padding: 18px 20px; border: 1px solid #bfd9ff; border-radius: 14px; background: linear-gradient(135deg,#f4f9ff,#f8f5ff); color: #17233b; }
+.cf-provider-required strong { display: block; margin-bottom: 5px; }
+.cf-provider-required p { margin: 0 0 10px; color: #5f6f84; }
+.cf-provider-required a { color: var(--cf-blue); font-weight: 700; text-decoration: none; }
 .cf-asset-intro { display: flex; align-items: center; gap: 13px; margin-bottom: 20px; padding: 14px; border: 1px solid #d8e4ff; border-radius: 10px; background: linear-gradient(135deg, #f3f8ff, #f8f4ff); }
 .cf-asset-intro small { margin-top: 3px; }
 .cf-vision-icon { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px; border-radius: 11px; background: linear-gradient(135deg, var(--cf-blue), var(--cf-violet)); color: #fff; font-size: 25px; }

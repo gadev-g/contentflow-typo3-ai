@@ -64,20 +64,38 @@
           </div>
         </div>
 
-        <details class="cf-advanced">
-          <summary>Advanced AI settings</summary>
-          <div class="cf-grid cf-grid-provider">
-            <div class="form-group"><label for="provider">Provider</label><f:form.select name="provider" id="provider" value="{defaultProvider}" class="form-select" required="true"><f:for each="{providers}" as="provider"><option value="{provider.id}">{provider.id}</option></f:for></f:form.select><small>Only providers enabled in the ContentFlow dashboard are shown.</small></div>
-            <div class="form-group"><label for="model">Model <span>optional</span></label><f:form.textfield name="model" id="model" placeholder="Use provider default" class="form-control" /></div>
-          </div>
-        </details>
+        <f:if condition="{providers}">
+          <f:then>
+            <details class="cf-advanced">
+              <summary>Advanced AI settings</summary>
+              <div class="cf-grid cf-grid-provider">
+                <div class="form-group"><label for="provider">Provider</label><f:form.select name="provider" id="provider" value="{defaultProvider}" class="form-select" required="true"><f:for each="{providers}" as="provider"><option value="{provider.id}">{provider.id}</option></f:for></f:form.select><small>Only providers enabled in the ContentFlow dashboard are shown.</small></div>
+                <div class="form-group"><label for="model">Model <span>optional</span></label><f:form.textfield name="model" id="model" placeholder="Use provider default" class="form-control" /></div>
+              </div>
+            </details>
+          </f:then>
+          <f:else>
+            <div class="cf-provider-required" role="alert">
+              <strong>No AI provider is enabled for this project.</strong>
+              <p>The Free plan supports 25 translation requests per month with your own OpenAI, Anthropic, or Ollama provider. Enable one in the ContentFlow Control Panel before translating.</p>
+              <a href="https://app.contentflow-ai.de/providers" target="_blank" rel="noopener noreferrer">Configure provider <span>→</span></a>
+            </div>
+          </f:else>
+        </f:if>
       </div>
       <footer class="cf-card-footer">
         <div class="cf-safe"><span>✓</span><p><b>Review-first workflow</b><br />Nothing is written until you approve the preview.</p></div>
-        <button type="submit" id="contentflow-translation-submit" class="btn btn-primary cf-primary">
-          <span class="cf-submit-idle">Create translation preview <span>→</span></span>
-          <span class="cf-submit-loading"><span class="cf-spinner" aria-hidden="true"></span> Creating preview …</span>
-        </button>
+        <f:if condition="{providers}">
+          <f:then>
+            <button type="submit" id="contentflow-translation-submit" class="btn btn-primary cf-primary">
+              <span class="cf-submit-idle">Create translation preview <span>→</span></span>
+              <span class="cf-submit-loading"><span class="cf-spinner" aria-hidden="true"></span> Creating preview …</span>
+            </button>
+          </f:then>
+          <f:else>
+            <button type="button" class="btn btn-primary cf-primary" disabled>Configure a provider first</button>
+          </f:else>
+        </f:if>
       </footer>
     </f:form>
   </div>

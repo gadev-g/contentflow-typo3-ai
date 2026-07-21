@@ -1,29 +1,175 @@
 <f:layout name="Module" />
 <f:section name="Content">
   <div class="cf-module cf-hub">
-    <header class="cf-hero"><div class="cf-brand-copy"><span class="cf-eyebrow">CONTENTFLOW AI</span><div class="cf-main-row"><div class="cf-logo cf-logo-wordmark"><img src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}" alt="ContentFlow AI" /></div><div class="cf-heading"><h1>Choose a workflow</h1><p>What would you like ContentFlow AI to help you with?</p></div></div></div><span class="cf-status"><i></i> Services ready</span></header>
-    <f:render partial="ProductMenu" arguments="{currentProduct: 'All assistants'}" />
+    <header class="cf-hero">
+      <div class="cf-brand-copy">
+        <span class="cf-eyebrow">CONTENTFLOW AI</span>
+        <div class="cf-main-row">
+          <div class="cf-logo cf-logo-wordmark">
+            <img
+              src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}"
+              alt="ContentFlow AI"
+            />
+          </div>
+          <div class="cf-heading">
+            <h1>Choose a workflow</h1>
+            <p>What would you like ContentFlow AI to help you with?</p>
+          </div>
+        </div>
+      </div>
+      <span class="cf-status"><i></i> Services ready</span>
+    </header>
+    <f:render
+      partial="ProductMenu"
+      arguments="{currentProduct: 'All assistants'}"
+    />
     <div class="cf-product-grid">
-      <f:link.action action="index" controller="Translation" class="cf-product-card">
-        <div class="cf-product-icon">文</div><span class="cf-product-label">TRANSLATION</span><h2>Translate content</h2><p>Translate pages, content elements, and asset metadata into configured TYPO3 languages.</p><ul><li>TYPO3 record browser</li><li>Review before publishing</li><li>Placeholder-safe content</li></ul><strong>Open Translation <span>→</span></strong>
+      <f:link.action
+        action="index"
+        controller="Translation"
+        class="cf-product-card"
+      >
+        <div class="cf-product-icon">文</div>
+        <span class="cf-product-label">TRANSLATION</span>
+        <h2>Translate content</h2>
+        <p>
+          Translate pages, content elements, and asset metadata into configured
+          TYPO3 languages.
+        </p>
+        <ul>
+          <li>TYPO3 record browser</li>
+          <li>Review before publishing</li>
+          <li>Placeholder-safe content</li>
+        </ul>
+        <strong>Open Translation <span>→</span></strong>
       </f:link.action>
       <f:if condition="{products.asset_intelligence}">
         <f:then>
-          <f:link.action action="index" controller="AssetMetadata" class="cf-product-card cf-product-card-vision">
-            <div class="cf-product-icon">◎</div><span class="cf-product-label">ASSET INTELLIGENCE</span><h2>Analyze images</h2><p>Generate accessible and searchable metadata for images stored in TYPO3 Filelist.</p><ul><li>Alt text and title</li><li>Description and keywords</li><li>Local or cloud vision</li></ul><strong>Open Asset Intelligence <span>→</span></strong>
+          <f:link.action
+            action="index"
+            controller="AssetMetadata"
+            class="cf-product-card cf-product-card-vision"
+          >
+            <div class="cf-product-icon">◎</div>
+            <span class="cf-product-label">ASSET INTELLIGENCE</span>
+            <h2>Analyze images</h2>
+            <p>
+              Generate accessible and searchable metadata for images stored in
+              TYPO3 Filelist.
+            </p>
+            <ul>
+              <li>Alt text and title</li>
+              <li>Description and keywords</li>
+              <li>Local or cloud vision</li>
+            </ul>
+            <strong>Open Asset Intelligence <span>→</span></strong>
           </f:link.action>
         </f:then>
         <f:else>
-          <f:link.action action="index" controller="AssetMetadata" class="cf-product-card cf-product-card-vision cf-product-card-locked">
-            <em>STARTER</em><div class="cf-product-icon">◎</div><span class="cf-product-label">ASSET INTELLIGENCE</span><h2>Analyze images</h2><p>Upgrade to Starter to generate accessible and searchable metadata for TYPO3 images.</p><ul><li>Alt text and title</li><li>Description and keywords</li><li>Full product suite</li></ul><strong>Unlock with Starter <span>→</span></strong>
+          <f:link.action
+            action="index"
+            controller="AssetMetadata"
+            class="cf-product-card cf-product-card-vision cf-product-card-locked"
+          >
+            <em>STARTER</em>
+            <div class="cf-product-icon">◎</div>
+            <span class="cf-product-label">ASSET INTELLIGENCE</span>
+            <h2>Analyze images</h2>
+            <p>
+              Upgrade to Starter to generate accessible and searchable metadata
+              for TYPO3 images.
+            </p>
+            <ul>
+              <li>Alt text and title</li>
+              <li>Description and keywords</li>
+              <li>Full product suite</li>
+            </ul>
+            <strong>Unlock with Starter <span>→</span></strong>
           </f:link.action>
         </f:else>
       </f:if>
-      <f:link.action action="index" controller="ImageGeneration" class="cf-product-card cf-product-card-generation">
-        <em>STARTER · COMING SOON</em><div class="cf-product-icon">✦</div><span class="cf-product-label">AI IMAGE GENERATION</span><h2>Generate images</h2><p>Create new visuals, variations and metadata directly in your TYPO3 editorial workflow.</p><ul><li>Prompt-based generation</li><li>TYPO3 Filelist integration</li><li>Review before storage</li></ul><strong>View preview <span>→</span></strong>
+      <f:if condition="{products.seo_intelligence}">
+        <f:then
+          ><f:link.action
+            action="index"
+            controller="Seo"
+            class="cf-product-card cf-product-card-seo"
+            ><div class="cf-product-icon"><f:render partial="Icon/Seo" /></div>
+            <span class="cf-product-label">SEO INTELLIGENCE</span>
+            <h2>Optimize pages</h2>
+            <p>
+              Generate metadata, focus keywords and evidence-based Schema.org
+              JSON-LD.
+            </p>
+            <ul>
+              <li>Complete page analysis</li>
+              <li>Structured data suggestions</li>
+              <li>Review before saving</li>
+            </ul>
+            <strong>Open SEO Intelligence <span>→</span></strong></f:link.action
+          ></f:then
+        >
+        <f:else
+          ><f:link.action
+            action="index"
+            controller="Seo"
+            class="cf-product-card cf-product-card-seo cf-product-card-locked"
+            ><em>STARTER</em>
+            <div class="cf-product-icon"><f:render partial="Icon/Seo" /></div>
+            <span class="cf-product-label">SEO INTELLIGENCE</span>
+            <h2>Optimize pages</h2>
+            <p>
+              Upgrade to Starter for automatic metadata and Schema.org
+              proposals.
+            </p>
+            <ul>
+              <li>SEO title and description</li>
+              <li>Focus keywords</li>
+              <li>Structured data</li>
+            </ul>
+            <strong>Unlock with Starter <span>→</span></strong></f:link.action
+          ></f:else
+        >
+      </f:if>
+      <f:link.action
+        action="index"
+        controller="ImageGeneration"
+        class="cf-product-card cf-product-card-generation"
+      >
+        <em>STARTER · COMING SOON</em>
+        <div class="cf-product-icon">✦</div>
+        <span class="cf-product-label">AI IMAGE GENERATION</span>
+        <h2>Generate images</h2>
+        <p>
+          Create new visuals, variations and metadata directly in your TYPO3
+          editorial workflow.
+        </p>
+        <ul>
+          <li>Prompt-based generation</li>
+          <li>TYPO3 Filelist integration</li>
+          <li>Review before storage</li>
+        </ul>
+        <strong>View preview <span>→</span></strong>
       </f:link.action>
-      <f:link.action action="index" controller="ContentCreator" class="cf-product-card cf-product-card-creator">
-        <em>STARTER · COMING SOON</em><div class="cf-product-icon">✎</div><span class="cf-product-label">AI CONTENT CREATOR</span><h2>Create content</h2><p>Turn a guided briefing into structured, brand-consistent content ready for editorial review.</p><ul><li>Audience and goal briefing</li><li>Brand voice and glossary</li><li>Review before publishing</li></ul><strong>View preview <span>→</span></strong>
+      <f:link.action
+        action="index"
+        controller="ContentCreator"
+        class="cf-product-card cf-product-card-creator"
+      >
+        <em>STARTER · COMING SOON</em>
+        <div class="cf-product-icon">✎</div>
+        <span class="cf-product-label">AI CONTENT CREATOR</span>
+        <h2>Create content</h2>
+        <p>
+          Turn a guided briefing into structured, brand-consistent content ready
+          for editorial review.
+        </p>
+        <ul>
+          <li>Audience and goal briefing</li>
+          <li>Brand voice and glossary</li>
+          <li>Review before publishing</li>
+        </ul>
+        <strong>View preview <span>→</span></strong>
       </f:link.action>
     </div>
   </div>

@@ -145,6 +145,19 @@ Existiert die verbundene Lokalisierung bereits, wird sie aktualisiert. Andernfal
 
 Die Originaldatei wird nicht verändert. ContentFlow schreibt ausschließlich die freigegebenen Werte in `sys_file_metadata`.
 
+## SEO Intelligence verwenden
+
+SEO Intelligence ist im Starter-Tarif und höher verfügbar; der Free-Tarif wird serverseitig gesperrt.
+
+1. **Web → ContentFlow → SEO Intelligence** öffnen.
+2. Die gewünschte TYPO3-Seite im Seitenbrowser auswählen.
+3. Ausgabesprache und optional Provider sowie Modell festlegen.
+4. Mit **Create SEO preview** die Seite einschließlich ihrer Inhaltselemente analysieren.
+5. SEO-Titel, Meta-Beschreibung, Fokus-Keywords und Schema.org JSON-LD prüfen.
+6. Die Vorschläge mit **Approve and save** übernehmen.
+
+ContentFlow liest dabei auch Textfelder eigener CTypes und Content Blocks. Das geprüfte Schema.org JSON-LD wird auf der Seite gespeichert und automatisch als `application/ld+json` im HTML-Kopf ausgegeben.
+
 ## Debug-Modus
 
 Setze `debugMode` vorübergehend auf `1`, um in der Vorschau den bereinigten Request, den HTTP-Status und die API-Antwort zu sehen. API-Keys und vollständige Base64-Bilddaten werden niemals angezeigt.

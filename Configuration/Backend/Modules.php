@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-use ContentFlow\Typo3Translation\Controller\TranslationController;
 use ContentFlow\Typo3Translation\Controller\AssetMetadataController;
+use ContentFlow\Typo3Translation\Controller\ContentCreatorController;
 use ContentFlow\Typo3Translation\Controller\HubController;
 use ContentFlow\Typo3Translation\Controller\ImageGenerationController;
-use ContentFlow\Typo3Translation\Controller\ContentCreatorController;
+use ContentFlow\Typo3Translation\Controller\SeoController;
+use ContentFlow\Typo3Translation\Controller\TranslationController;
 
 return [
     'contentflow_translation' => [
@@ -24,6 +25,7 @@ return [
             AssetMetadataController::class => ['index', 'preview', 'apply'],
             ImageGenerationController::class => ['index'],
             ContentCreatorController::class => ['index'],
+            SeoController::class => ['index', 'preview', 'apply'],
         ],
     ],
 ];

@@ -1,0 +1,53 @@
+<f:layout name="Module" />
+<f:section name="Content">
+  <div class="cf-module">
+    <header class="cf-hero">
+      <div class="cf-brand-copy">
+        <span class="cf-eyebrow">CONTENTFLOW AI · SEO INTELLIGENCE</span>
+        <div class="cf-main-row">
+          <div class="cf-logo cf-logo-wordmark">
+            <img
+              src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}"
+              alt="ContentFlow AI"
+            />
+          </div>
+          <div class="cf-heading">
+            <h1>SEO Intelligence</h1>
+            <p>
+              Optimize TYPO3 pages with reviewable metadata and structured data.
+            </p>
+          </div>
+        </div>
+      </div>
+      <span class="cf-status cf-status-soon"><i></i> Starter product</span>
+    </header>
+    <f:render
+      partial="ProductMenu"
+      arguments="{currentProduct: 'SEO Intelligence'}"
+    />
+    <section class="cf-upgrade-card">
+      <div class="cf-coming-visual cf-coming-visual-content">
+        <span><f:render partial="Icon/Seo" /></span><i></i><i></i><i></i>
+      </div>
+      <div>
+        <span class="cf-product-label">STARTER AND HIGHER</span>
+        <h2>Unlock SEO Intelligence</h2>
+        <p>
+          Automatically generate SEO titles, descriptions, focus keywords and
+          evidence-based Schema.org JSON-LD from your TYPO3 page content.
+        </p>
+        <ul>
+          <li>Review before saving</li>
+          <li>Custom content elements included</li>
+          <li>No access in the Free plan</li>
+        </ul>
+        <a
+          href="https://app.contentflow-ai.de/billing"
+          target="_blank"
+          rel="noreferrer"
+          >Upgrade to Starter →</a
+        >
+      </div>
+    </section>
+  </div>
+</f:section>

@@ -98,6 +98,7 @@ final class SeoController extends ActionController
                 'pageUid' => $uid,
                 'pageTitle' => $title,
                 'metadata' => $metadata,
+                'schemaOrgFormatted' => $schemaOrgFormatted,
                 'meta' => $result['meta'] ?? [],
                 'debug' => $result['_debug'] ?? null,
                 'previewToken' => $token,

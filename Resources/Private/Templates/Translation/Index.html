@@ -33,7 +33,8 @@
         <div class="cf-grid cf-grid-record">
           <div class="form-group">
             <label for="table">What would you like to translate?</label>
-            <f:form.select name="table" id="table" value="{preselectedTable}" options="{tables}" class="form-select" />
+            <f:form.select name="tableSelector" id="table" value="{preselectedTable}" options="{tables}" class="form-select" />
+            <f:form.hidden name="table" id="submitted-table" value="{preselectedTable}" />
             <small>Choose a page, content element, asset, or file reference</small>
           </div>
           <div class="form-group cf-record-picker">

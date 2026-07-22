@@ -4,6 +4,7 @@ import { MessageUtility } from '@typo3/backend/utility/message-utility.js';
 const recordUid = document.querySelector('#uid');
 const recordUids = document.querySelector('#uids');
 const recordTable = document.querySelector('#table');
+const submittedTable = document.querySelector('#submitted-table');
 const scope = document.querySelector('#scope');
 const pickerButton = document.querySelector('#contentflow-record-picker');
 const selectionText = document.querySelector('#contentflow-record-selection');
@@ -45,7 +46,7 @@ const resetSelection = () => {
 };
 
 const applyScope = () => {
-  if (!recordTable || !pickerButton) return;
+  if (!recordTable || !submittedTable || !pickerButton) return;
   const mode = currentScope();
   if (mode === 'multiple') {
     recordTable.value = 'tt_content';
@@ -56,6 +57,7 @@ const applyScope = () => {
   } else {
     pickerButton.textContent = recordTable.value === 'sys_file_metadata' ? 'Select asset' : 'Select record';
   }
+  submittedTable.value = recordTable.value;
   recordTable.disabled = mode !== 'single';
   renderSelection();
 };
@@ -100,6 +102,7 @@ scope?.addEventListener('change', () => {
 });
 recordTable?.addEventListener('change', () => {
   if (currentScope() !== 'single') return;
+  if (submittedTable) submittedTable.value = recordTable.value;
   resetSelection();
   applyScope();
 });
@@ -119,7 +122,7 @@ form?.addEventListener('submit', (event) => {
     event.preventDefault();
     return;
   }
-  recordTable.disabled = false;
+  if (submittedTable && recordTable) submittedTable.value = recordTable.value;
   submitButton.dataset.loading = 'true';
   submitButton.disabled = true;
   submitButton.setAttribute('aria-busy', 'true');

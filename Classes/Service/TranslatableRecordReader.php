@@ -235,13 +235,38 @@ final readonly class TranslatableRecordReader
 
     private function isAllowedCollectionTable(string $table): bool
     {
-        if (!str_starts_with($table, 'tx_') || !isset($GLOBALS['TCA'][$table])) {
+        if (
+            1 !== preg_match('/^[a-zA-Z0-9_]+$/D', $table)
+            || !isset($GLOBALS['TCA'][$table])
+        ) {
             return false;
         }
 
         $control = $GLOBALS['TCA'][$table]['ctrl'] ?? [];
 
         return \is_string($control['languageField'] ?? null)
-            && \is_string($control['transOrigPointerField'] ?? null);
+            && \is_string($control['transOrigPointerField'] ?? null)
+            && $this->isReferencedInlineTable($table);
+    }
+
+    private function isReferencedInlineTable(string $table): bool
+    {
+        foreach ($GLOBALS['TCA'] as $parentConfiguration) {
+            if (!\is_array($parentConfiguration)) {
+                continue;
+            }
+
+            foreach (($parentConfiguration['columns'] ?? []) as $fieldConfiguration) {
+                if (
+                    \is_array($fieldConfiguration)
+                    && 'inline' === ($fieldConfiguration['config']['type'] ?? null)
+                    && $table === ($fieldConfiguration['config']['foreign_table'] ?? null)
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

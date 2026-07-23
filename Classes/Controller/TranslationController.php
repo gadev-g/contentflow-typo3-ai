@@ -352,6 +352,10 @@ final class TranslationController extends ActionController
             $visited[$key] = true;
             $expanded[] = $record;
 
+            foreach ($this->reader->relatedCollectionRecords($record['table'], $record['uid']) as $relatedRecord) {
+                $queue[] = $relatedRecord;
+            }
+
             if ('tt_content' !== $record['table']) {
                 continue;
             }

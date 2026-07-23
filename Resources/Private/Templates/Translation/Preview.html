@@ -32,6 +32,8 @@
         <div class="cf-actions"><f:link.action action="index" class="btn btn-default">Discard</f:link.action><f:form action="apply" method="post" class="cf-approve-form"><f:form.hidden name="previewToken" value="{previewToken}" /><button type="submit" class="btn btn-success cf-primary cf-approve-submit"><span>Approve and save</span></button></f:form></div>
       </footer>
     </div>
-    <f:render partial="Debug/Exchange" arguments="{debug: debug}" />
+    <f:for each="{debugItems}" as="debugItem">
+      <f:render partial="Debug/Exchange" arguments="{debug: debugItem}" />
+    </f:for>
   </div>
 </f:section>

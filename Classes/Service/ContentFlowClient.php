@@ -274,6 +274,7 @@ final readonly class ContentFlowClient
         } catch (\JsonException $exception) {
             $contentType = $response->getHeaderLine('Content-Type');
             $excerpt = $this->responseExcerpt($rawBody);
+            $serverRequestId = $this->responseRequestId($rawBody);
 
             $this->reportClientError(
                 $endpoint,
@@ -282,6 +283,7 @@ final readonly class ContentFlowClient
                 $excerpt,
                 $context,
                 $exception->getMessage(),
+                $serverRequestId,
             );
 
             $details = sprintf(
@@ -317,6 +319,7 @@ final readonly class ContentFlowClient
         string $responseExcerpt,
         array $context,
         string $message,
+        ?string $serverRequestId,
     ): void {
         if ('' === $this->apiKey) {
             return;
@@ -327,6 +330,7 @@ final readonly class ContentFlowClient
             'provider' => $context['provider'] ?? null,
             'model' => $context['model'] ?? null,
             'endpoint' => $endpoint,
+            'server_request_id' => $serverRequestId,
             'http_status' => $statusCode,
             'content_type' => $contentType,
             'response_excerpt' => $responseExcerpt,
@@ -355,6 +359,15 @@ final readonly class ContentFlowClient
         $plainText = preg_replace('/\s+/', ' ', $plainText) ?? $plainText;
 
         return mb_substr(trim($plainText), 0, 1000);
+    }
+
+    private function responseRequestId(string $body): ?string
+    {
+        if (!preg_match('/"id"\s*:\s*"([0-9a-f-]{36})"/i', $body, $matches)) {
+            return null;
+        }
+
+        return $matches[1];
     }
 
     /**

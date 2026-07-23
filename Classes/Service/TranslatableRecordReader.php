@@ -32,24 +32,11 @@ final readonly class TranslatableRecordReader
     /** @return array<string, string> */
     public function read(string $table, int $uid): array
     {
-        if (!\in_array($table, self::ALLOWED_TABLES, true) || !isset($GLOBALS['TCA'][$table])) {
+        if (!$this->isAllowedTable($table)) {
             throw new \InvalidArgumentException('This table is not enabled for ContentFlow translations.');
         }
 
-        $query = $this->connectionPool->getQueryBuilderForTable($table);
-        $record = $query
-            ->select('*')
-            ->from($table)
-            ->where($query->expr()->eq(
-                'uid',
-                $query->createNamedParameter($uid, \Doctrine\DBAL\ParameterType::INTEGER),
-            ))
-            ->executeQuery()
-            ->fetchAssociative();
-
-        if (!$record) {
-            throw new \RuntimeException('Record not found.');
-        }
+        $record = $this->record($table, $uid);
 
         $fields = [];
 
@@ -75,6 +62,105 @@ final readonly class TranslatableRecordReader
         }
 
         return $fields;
+    }
+
+    /**
+     * Resolve localizable TCA inline records such as Content Blocks
+     * collections. The records are returned in their configured sort order.
+     *
+     * @return list<array{table: string, uid: int}>
+     */
+    public function relatedCollectionRecords(string $table, int $uid): array
+    {
+        if (!$this->isAllowedTable($table)) {
+            return [];
+        }
+
+        $record = $this->record($table, $uid);
+        $related = [];
+
+        foreach (($GLOBALS['TCA'][$table]['columns'] ?? []) as $name => $configuration) {
+            if (!\is_array($configuration)) {
+                continue;
+            }
+
+            $configuration = $this->effectiveFieldConfiguration($table, $record, $name, $configuration);
+            $config = $configuration['config'] ?? [];
+
+            if (!\is_array($config) || 'inline' !== ($config['type'] ?? null)) {
+                continue;
+            }
+
+            $foreignTable = $config['foreign_table'] ?? null;
+            $foreignField = $config['foreign_field'] ?? null;
+
+            if (
+                !\is_string($foreignTable)
+                || !\is_string($foreignField)
+                || !$this->isAllowedCollectionTable($foreignTable)
+            ) {
+                continue;
+            }
+
+            $query = $this->connectionPool->getQueryBuilderForTable($foreignTable);
+            $conditions = [
+                $query->expr()->eq(
+                    $foreignField,
+                    $query->createNamedParameter($uid, \Doctrine\DBAL\ParameterType::INTEGER),
+                ),
+            ];
+
+            $foreignTableField = $config['foreign_table_field'] ?? null;
+
+            if (\is_string($foreignTableField) && '' !== $foreignTableField) {
+                $conditions[] = $query->expr()->eq(
+                    $foreignTableField,
+                    $query->createNamedParameter($table),
+                );
+            }
+
+            foreach (($config['foreign_match_fields'] ?? []) as $field => $value) {
+                if (!\is_string($field)) {
+                    continue;
+                }
+
+                $conditions[] = $query->expr()->eq(
+                    $field,
+                    $query->createNamedParameter($value),
+                );
+            }
+
+            $languageField = $GLOBALS['TCA'][$foreignTable]['ctrl']['languageField'] ?? null;
+
+            if (\is_string($languageField) && '' !== $languageField) {
+                $conditions[] = $query->expr()->eq(
+                    $languageField,
+                    $query->createNamedParameter(0, \Doctrine\DBAL\ParameterType::INTEGER),
+                );
+            }
+
+            $query
+                ->select('uid')
+                ->from($foreignTable)
+                ->where(...$conditions);
+
+            $sortField = $config['foreign_sortby'] ?? null;
+
+            if (\is_string($sortField) && '' !== $sortField) {
+                $query->orderBy($sortField);
+            } else {
+                $query->orderBy('uid');
+            }
+
+            foreach ($query->executeQuery()->fetchFirstColumn() as $relatedUid) {
+                $related[] = [
+                    'table' => $foreignTable,
+                    'uid' => (int) $relatedUid,
+                ];
+            }
+        }
+
+        return $related;
     }
 
     /** @return list<string> */
@@ -118,5 +204,44 @@ final readonly class TranslatableRecordReader
             $eval,
             ['int', 'double2', 'date', 'datetime', 'time', 'timesec', 'year', 'unixTimestamp'],
         );
+    }
+
+    /** @return array<string, mixed> */
+    private function record(string $table, int $uid): array
+    {
+        $query = $this->connectionPool->getQueryBuilderForTable($table);
+        $record = $query
+            ->select('*')
+            ->from($table)
+            ->where($query->expr()->eq(
+                'uid',
+                $query->createNamedParameter($uid, \Doctrine\DBAL\ParameterType::INTEGER),
+            ))
+            ->executeQuery()
+            ->fetchAssociative();
+
+        if (!$record) {
+            throw new \RuntimeException('Record not found.');
+        }
+
+        return $record;
+    }
+
+    private function isAllowedTable(string $table): bool
+    {
+        return \in_array($table, self::ALLOWED_TABLES, true)
+            || $this->isAllowedCollectionTable($table);
+    }
+
+    private function isAllowedCollectionTable(string $table): bool
+    {
+        if (!str_starts_with($table, 'tx_') || !isset($GLOBALS['TCA'][$table])) {
+            return false;
+        }
+
+        $control = $GLOBALS['TCA'][$table]['ctrl'] ?? [];
+
+        return \is_string($control['languageField'] ?? null)
+            && \is_string($control['transOrigPointerField'] ?? null);
     }
 }

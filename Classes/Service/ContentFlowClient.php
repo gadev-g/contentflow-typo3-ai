@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ContentFlow\Typo3Translation\Service;
 
+use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Http\RequestFactory;
 
@@ -80,8 +81,15 @@ final readonly class ContentFlowClient
             ],
         );
 
-        /** @var array<string, mixed> $body */
-        $body = json_decode((string) $response->getBody(), true, 512, \JSON_THROW_ON_ERROR);
+        $body = $this->decodeResponse(
+            $response,
+            '/api/v1/integrations/typo3/jobs',
+            [
+                'reference' => $records[0]['reference'] ?? 'translation-batch',
+                'provider' => $provider,
+                'model' => $model,
+            ],
+        );
 
         if ($response->getStatusCode() >= 300) {
             throw new \RuntimeException((string) ($body['error']['message'] ?? 'ContentFlow request failed.'));
@@ -114,8 +122,11 @@ final readonly class ContentFlowClient
             'headers' => ['X-API-Key' => $this->apiKey, 'Accept' => 'application/json'],
             'timeout' => 15,
         ]);
-        /** @var array<string, mixed> $body */
-        $body = json_decode((string) $response->getBody(), true, 512, \JSON_THROW_ON_ERROR);
+        $body = $this->decodeResponse(
+            $response,
+            '/api/v1/providers',
+            ['reference' => 'provider-context'],
+        );
 
         if ($response->getStatusCode() >= 300) {
             throw new \RuntimeException(
@@ -164,8 +175,15 @@ final readonly class ContentFlowClient
                 'timeout' => 180,
             ],
         );
-        /** @var array<string, mixed> $body */
-        $body = json_decode((string) $response->getBody(), true, 512, \JSON_THROW_ON_ERROR);
+        $body = $this->decodeResponse(
+            $response,
+            '/api/v1/integrations/typo3/seo/analyze',
+            [
+                'reference' => 'pages:' . $pageUid,
+                'provider' => $provider,
+                'model' => $model,
+            ],
+        );
         if ($response->getStatusCode() >= 300) {
             throw new \RuntimeException((string) ($body['error']['message'] ?? 'ContentFlow SEO analysis failed.'));
         }
@@ -211,8 +229,15 @@ final readonly class ContentFlowClient
             ],
         );
 
-        /** @var array<string, mixed> $body */
-        $body = json_decode((string) $response->getBody(), true, 512, \JSON_THROW_ON_ERROR);
+        $body = $this->decodeResponse(
+            $response,
+            '/api/v1/integrations/typo3/assets/analyze',
+            [
+                'reference' => $reference,
+                'provider' => $provider,
+                'model' => $model,
+            ],
+        );
 
         if ($response->getStatusCode() >= 300) {
             throw new \RuntimeException((string) ($body['error']['message'] ?? 'ContentFlow asset analysis failed.'));
@@ -234,6 +259,102 @@ final readonly class ContentFlowClient
 
         /** @var array<string, mixed> $body */
         return $body;
+    }
+
+    /**
+     * @param array{reference?: string, provider?: string, model?: ?string} $context
+     * @return array<string, mixed>
+     */
+    private function decodeResponse(ResponseInterface $response, string $endpoint, array $context): array
+    {
+        $rawBody = (string) $response->getBody();
+
+        try {
+            $decoded = json_decode($rawBody, true, 512, \JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            $contentType = $response->getHeaderLine('Content-Type');
+            $excerpt = $this->responseExcerpt($rawBody);
+
+            $this->reportClientError(
+                $endpoint,
+                $response->getStatusCode(),
+                $contentType,
+                $excerpt,
+                $context,
+                $exception->getMessage(),
+            );
+
+            $details = sprintf(
+                'ContentFlow returned an invalid JSON response for %s (HTTP %d%s).',
+                $endpoint,
+                $response->getStatusCode(),
+                '' === $contentType ? '' : ', ' . $contentType,
+            );
+
+            if ('' !== $excerpt) {
+                $details .= ' Response: ' . $excerpt;
+            }
+
+            throw new \RuntimeException($details, 0, $exception);
+        }
+
+        if (!\is_array($decoded)) {
+            throw new \RuntimeException(
+                sprintf('ContentFlow returned an unsupported JSON response for %s.', $endpoint),
+            );
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * @param array{reference?: string, provider?: string, model?: ?string} $context
+     */
+    private function reportClientError(
+        string $endpoint,
+        int $statusCode,
+        string $contentType,
+        string $responseExcerpt,
+        array $context,
+        string $message,
+    ): void {
+        if ('' === $this->apiKey) {
+            return;
+        }
+
+        $payload = [
+            'reference' => $context['reference'] ?? null,
+            'provider' => $context['provider'] ?? null,
+            'model' => $context['model'] ?? null,
+            'endpoint' => $endpoint,
+            'http_status' => $statusCode,
+            'content_type' => $contentType,
+            'response_excerpt' => $responseExcerpt,
+            'error_code' => 'invalid_api_response',
+            'message' => 'The integration received invalid JSON: ' . $message,
+        ];
+
+        try {
+            $this->requestFactory->request(
+                rtrim($this->baseUrl, '/') . '/api/v1/integrations/typo3/errors',
+                'POST',
+                [
+                    'headers' => ['X-API-Key' => $this->apiKey, 'Content-Type' => 'application/json'],
+                    'body' => json_encode($payload, \JSON_THROW_ON_ERROR),
+                    'timeout' => 10,
+                ],
+            );
+        } catch (\Throwable) {
+            // A diagnostic request must never hide the original integration error.
+        }
+    }
+
+    private function responseExcerpt(string $body): string
+    {
+        $plainText = html_entity_decode(strip_tags($body), \ENT_QUOTES | \ENT_HTML5);
+        $plainText = preg_replace('/\s+/', ' ', $plainText) ?? $plainText;
+
+        return mb_substr(trim($plainText), 0, 1000);
     }
 
     /**

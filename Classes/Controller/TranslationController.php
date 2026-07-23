@@ -17,6 +17,8 @@ use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
 
 final class TranslationController extends ActionController
 {
+    private const TRANSLATION_BATCH_SIZE = 50;
+
     public function __construct(
         private readonly ModuleTemplateFactory $moduleTemplateFactory,
         private readonly TranslatableRecordReader $reader,
@@ -99,7 +101,7 @@ final class TranslationController extends ActionController
             }
 
             $result = [] !== $requestRecords
-                ? $this->client->translateBatch(
+                ? $this->translateInBatches(
                     $requestRecords,
                     $sourceLanguage,
                     $targetLanguage,
@@ -121,7 +123,7 @@ final class TranslationController extends ActionController
                             'glossary_entries_applied' => 0,
                         ],
                     ],
-                    '_debug' => null,
+                    '_debug_items' => [],
                 ];
 
             foreach ($result['records'] ?? [] as $translatedRecord) {
@@ -154,7 +156,7 @@ final class TranslationController extends ActionController
                 'previewToken' => $token,
                 'jobId' => $result['job_id'],
                 'meta' => $result['meta'],
-                'debug' => $result['_debug'] ?? null,
+                'debugItems' => $result['_debug_items'] ?? [],
             ]);
 
             return $module->renderResponse('Translation/Preview');
@@ -205,6 +207,61 @@ final class TranslationController extends ActionController
     private function backendUser(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
+    }
+
+    /**
+     * @param list<array{reference: string, fields: array<string, string>}> $records
+     * @return array<string, mixed>
+     */
+    private function translateInBatches(
+        array $records,
+        string $sourceLanguage,
+        string $targetLanguage,
+        string $provider,
+        string $model,
+    ): array {
+        $translatedRecords = [];
+        $jobIds = [];
+        $debugItems = [];
+        $meta = [];
+        $inputTokens = 0;
+        $outputTokens = 0;
+
+        foreach (array_chunk($records, self::TRANSLATION_BATCH_SIZE) as $index => $batch) {
+            $result = $this->client->translateBatch(
+                $batch,
+                $sourceLanguage,
+                $targetLanguage,
+                $provider,
+                $model,
+            );
+
+            $translatedRecords = array_merge($translatedRecords, (array) ($result['records'] ?? []));
+            $jobIds[] = (string) ($result['job_id'] ?? 'batch-'.($index + 1));
+
+            if ([] === $meta && \is_array($result['meta'] ?? null)) {
+                $meta = $result['meta'];
+            }
+
+            $inputTokens += (int) ($result['meta']['usage']['input_tokens'] ?? 0);
+            $outputTokens += (int) ($result['meta']['usage']['output_tokens'] ?? 0);
+
+            if (\is_array($result['_debug'] ?? null)) {
+                $debugItems[] = $result['_debug'];
+            }
+        }
+
+        $meta['usage']['input_tokens'] = $inputTokens;
+        $meta['usage']['output_tokens'] = $outputTokens;
+
+        return [
+            'job_id' => 1 === \count($jobIds)
+                ? $jobIds[0]
+                : $jobIds[0].' + '.(\count($jobIds) - 1).' batch(es)',
+            'records' => $translatedRecords,
+            'meta' => $meta,
+            '_debug_items' => $debugItems,
+        ];
     }
 
     /** @return list<array{id: int, code: string, title: string, isDefault: bool}> */

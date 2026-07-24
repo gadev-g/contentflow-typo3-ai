@@ -31,9 +31,11 @@ final class AssetMetadataController extends ActionController
         try {
             $context = $this->client->integrationContext();
             $providers = is_array($context['items'] ?? null) ? array_values($context['items']) : [];
+            $models = $this->availableModels($providers);
         } catch (\Throwable $exception) {
             $context = [];
             $providers = [];
+            $models = [];
             $this->addFlashMessage(
                 $exception->getMessage(),
                 'Provider configuration unavailable',
@@ -50,11 +52,51 @@ final class AssetMetadataController extends ActionController
         $module->assignMultiple([
             'languages' => $this->availableLanguages(),
             'providers' => $providers,
+            'models' => $models,
             'defaultProvider' => $providers[0]['id'] ?? '',
             'products' => $context['entitlements']['products'] ?? [],
         ]);
 
         return $module->renderResponse('AssetMetadata/Index');
+    }
+
+    /**
+     * @param list<array{id: string}> $providers
+     * @return list<array{id: string, label: string, provider: string}>
+     */
+    private function availableModels(array $providers): array
+    {
+        $models = [];
+        foreach ($providers as $provider) {
+            $providerId = (string) ($provider['id'] ?? '');
+            if ('' === $providerId) {
+                continue;
+            }
+            try {
+                $providerModels = $this->client->models($providerId);
+            } catch (\Throwable) {
+                $providerModels = [];
+            }
+            foreach ($providerModels as $model) {
+                $id = (string) ($model['id'] ?? '');
+                if ('' === $id) {
+                    continue;
+                }
+                $details = array_values(array_filter([
+                    (string) ($model['parameter_size'] ?? ''),
+                    ((int) ($model['size'] ?? 0)) > 0
+                        ? number_format((int) $model['size'] / 1024 ** 3, 1) . ' GB'
+                        : '',
+                ]));
+                $models[] = [
+                    'id' => $id,
+                    'label' => [] === $details ? $id : sprintf('%s (%s)', $id, implode(', ', $details)),
+                    'provider' => $providerId,
+                ];
+            }
+        }
+
+        return $models;
     }
 
     public function previewAction(

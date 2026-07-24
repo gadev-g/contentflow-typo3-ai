@@ -71,7 +71,7 @@
               <summary>Advanced AI settings</summary>
               <div class="cf-grid cf-grid-provider">
                 <div class="form-group"><label for="provider">Provider</label><f:form.select name="provider" id="provider" value="{defaultProvider}" class="form-select" required="true"><f:for each="{providers}" as="provider"><option value="{provider.id}">{provider.id}</option></f:for></f:form.select><small>Only providers enabled in the ContentFlow dashboard are shown.</small></div>
-                <div class="form-group"><label for="model">Model <span>optional</span></label><f:form.textfield name="model" id="model" placeholder="Use provider default" class="form-control" /></div>
+                <div class="form-group"><label for="model">Model <span>optional</span></label><f:form.select name="model" id="model" class="form-select contentflow-model-select"><option value="">Use provider default</option><f:for each="{models}" as="model"><option value="{model.id}" data-provider="{model.provider}">{model.label}</option></f:for></f:form.select><small>Models are loaded directly from the selected provider.</small></div>
               </div>
             </details>
           </f:then>

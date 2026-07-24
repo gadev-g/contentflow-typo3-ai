@@ -109,6 +109,31 @@ final readonly class ContentFlowClient
         return is_array($context['items'] ?? null) ? array_values($context['items']) : [];
     }
 
+    /** @return list<array{id: string, size: int, parameter_size: string, capabilities: list<string>}> */
+    public function models(string $provider): array
+    {
+        if ('' === trim($this->apiKey)) {
+            throw new \RuntimeException(
+                'The ContentFlow project API key is not configured in TYPO3 Extension Configuration.',
+            );
+        }
+
+        $endpoint = '/api/v1/providers/' . rawurlencode($provider) . '/models';
+        $response = $this->requestFactory->request(rtrim($this->baseUrl, '/') . $endpoint, 'GET', [
+            'headers' => ['X-API-Key' => $this->apiKey, 'Accept' => 'application/json'],
+            'timeout' => 20,
+        ]);
+        $body = $this->decodeResponse($response, $endpoint, ['reference' => 'provider-models']);
+
+        if ($response->getStatusCode() >= 300) {
+            throw new \RuntimeException(
+                (string) ($body['error']['message'] ?? 'Could not load available ContentFlow models.'),
+            );
+        }
+
+        return is_array($body['items'] ?? null) ? array_values($body['items']) : [];
+    }
+
     /** @return array<string, mixed> */
     public function integrationContext(): array
     {

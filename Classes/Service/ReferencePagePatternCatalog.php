@@ -76,6 +76,7 @@ final readonly class ReferencePagePatternCatalog
                 : [];
             $fieldValues = [];
             $optionValues = [];
+            $emptyFields = [];
 
             foreach ($allowedFields as $field) {
                 if (
@@ -89,6 +90,13 @@ final readonly class ReferencePagePatternCatalog
 
                 if ('' !== trim($value)) {
                     $fieldValues[$field] = mb_substr($value, 0, 2000);
+                }
+
+                if (
+                    '' === trim($value)
+                    && \in_array($field, ['header', 'subheader'], true)
+                ) {
+                    $emptyFields[] = $field;
                 }
 
                 if (
@@ -108,6 +116,7 @@ final readonly class ReferencePagePatternCatalog
                 'column' => (int) ($row['colPos'] ?? 0),
                 'field_values' => $fieldValues,
                 'option_values' => $optionValues,
+                'empty_fields' => $emptyFields,
                 'relation_counts' => $this->relationCounts($targetTypes[$targetIndex], (int) $row['uid']),
             ];
         }

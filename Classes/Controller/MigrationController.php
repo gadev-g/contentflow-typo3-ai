@@ -157,6 +157,8 @@ final class MigrationController extends ActionController
             $typeLabels = [];
             $typesByName = [];
             $referencePatternLabels = [];
+            $usedReferencePatterns = [];
+            $outsideReferenceCount = 0;
 
             foreach ($targetTypes as $targetType) {
                 $typeLabels[$targetType['type']] = $targetType['label'];
@@ -186,13 +188,28 @@ final class MigrationController extends ActionController
                     $item['reference_pattern_label'] = $referencePatternLabels[
                         (string) ($item['reference_pattern_id'] ?? '')
                     ] ?? '';
+                    $referencePatternId = (string) ($item['reference_pattern_id'] ?? '');
+
+                    if ('' !== $referencePatternId) {
+                        $usedReferencePatterns[$referencePatternId] = true;
+                    }
+
+                    $isOutsideReference = 'outside_reference' === (
+                        $item['reference_blueprint_status']
+                        ?? ''
+                    );
+
+                    if ($isOutsideReference) {
+                        ++$outsideReferenceCount;
+                    }
+
                     $sourceIndex = (int) ($item['source_index'] ?? -1);
                     $sourceIndices = \is_array($item['source_indices'] ?? null)
                         ? $item['source_indices']
                         : [$sourceIndex];
                     $item['source_record'] = $this->combinedSourceRecord($elements, $sourceIndices);
                     $item['relations'] = \is_array($item['relations'] ?? null) ? $item['relations'] : [];
-                    $item['enabled'] = true;
+                    $item['enabled'] = !$isOutsideReference;
                     $item['order'] = $itemIndex;
                     $item['field_definitions'] = $this->fieldDefinitions(
                         $typesByName[(string) ($item['target_type'] ?? '')] ?? [],
@@ -202,6 +219,14 @@ final class MigrationController extends ActionController
             }
 
             unset($item);
+
+            $missingReferencePatterns = [];
+
+            foreach ($referencePatternLabels as $patternId => $patternLabel) {
+                if (!isset($usedReferencePatterns[$patternId])) {
+                    $missingReferencePatterns[] = $patternLabel;
+                }
+            }
 
             $token = bin2hex(random_bytes(24));
             $targetTypeSchemaJson = json_encode(
@@ -232,6 +257,8 @@ final class MigrationController extends ActionController
                 'sourceBlockCount' => \count($blocks),
                 'targetPageUid' => $targetPageUid,
                 'referencePageUid' => $referencePageUid,
+                'missingReferencePatterns' => $missingReferencePatterns,
+                'outsideReferenceCount' => $outsideReferenceCount,
                 'items' => $items,
                 'targetTypes' => $targetTypes,
                 'targetTypeSchemaJson' => $targetTypeSchemaJson,

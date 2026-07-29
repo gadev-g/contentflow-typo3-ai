@@ -176,6 +176,7 @@ final class MigrationController extends ActionController
             $catalogPatternLabels = [];
             $patternsById = [];
             $patternsByType = [];
+            $catalogPatternsByType = [];
             $usedReferencePatterns = [];
             $outsideReferenceCount = 0;
 
@@ -217,13 +218,19 @@ final class MigrationController extends ActionController
                         );
                         $patternsById[$catalogPattern['id']] = $catalogPattern;
                         $patternsByType[$typeName][$catalogPattern['id']] = $catalogPattern;
+                        $catalogPatternsByType[$typeName][$catalogPattern['id']] = $catalogPattern;
                     }
                 }
             }
 
             foreach ($items as $itemIndex => &$item) {
                 if (\is_array($item)) {
-                    $item = $this->applyPatternAppearance($item, $patternsById, $patternsByType);
+                    $item = $this->applyPatternAppearance(
+                        $item,
+                        $patternsById,
+                        $patternsByType,
+                        $catalogPatternsByType,
+                    );
                     $item['target_label'] = $typeLabels[(string) ($item['target_type'] ?? '')]
                         ?? (string) ($item['target_type'] ?? '');
                     $item['reference_pattern_label'] = $referencePatternLabels[
@@ -637,10 +644,16 @@ final class MigrationController extends ActionController
      * @param array<string, mixed> $item
      * @param array<string, array<string, mixed>> $patternsById
      * @param array<string, array<string, array<string, mixed>>> $patternsByType
+     * @param array<string, array<string, array<string, mixed>>> $catalogPatternsByType
      *
      * @return array<string, mixed>
      */
-    private function applyPatternAppearance(array $item, array $patternsById, array $patternsByType): array
+    private function applyPatternAppearance(
+        array $item,
+        array $patternsById,
+        array $patternsByType,
+        array $catalogPatternsByType = [],
+    ): array
     {
         $patternId = (string) ($item['reference_pattern_id'] ?? '');
 
@@ -649,6 +662,19 @@ final class MigrationController extends ActionController
         }
 
         $pattern = \is_array($patternsById[$patternId] ?? null) ? $patternsById[$patternId] : [];
+
+        if ([] === $pattern) {
+            $catalogPatterns = \is_array(
+                $catalogPatternsByType[(string) ($item['target_type'] ?? '')] ?? null
+            )
+                ? array_values($catalogPatternsByType[(string) ($item['target_type'] ?? '')])
+                : [];
+
+            if ([] !== $catalogPatterns) {
+                $pattern = $catalogPatterns[0];
+                $item['catalog_pattern_id'] = (string) ($pattern['id'] ?? '');
+            }
+        }
 
         if ([] === $pattern) {
             $typePatterns = \is_array($patternsByType[(string) ($item['target_type'] ?? '')] ?? null)

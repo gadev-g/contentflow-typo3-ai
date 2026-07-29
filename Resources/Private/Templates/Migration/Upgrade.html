@@ -1,0 +1,50 @@
+<f:layout name="Module" />
+<f:section name="Content">
+  <div class="cf-module">
+    <header class="cf-hero">
+      <div class="cf-brand-copy"><span class="cf-eyebrow">CONTENTFLOW AI · CONTENT MIGRATION</span><div class="cf-main-row"><div class="cf-logo cf-logo-wordmark"><img src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}" alt="ContentFlow AI" /></div><div class="cf-heading"><h1>Content Migration</h1><p>Turn legacy frontend pages into reviewable TYPO3 content elements.</p></div></div></div>
+      <span class="cf-status cf-status-soon"><i></i> Starter required</span>
+    </header>
+    <f:render partial="ProductMenu" arguments="{currentProduct: 'Content Migration'}" />
+    <f:flashMessages />
+    <section class="cf-upgrade-card">
+      <div><span class="cf-eyebrow">STARTER PRODUCT</span><h2>Migrate content without copy-and-paste</h2><p>Upgrade to map legacy pages to the content types installed in your current TYPO3 project.</p><ul><li>URL-based source analysis</li><li>Automatic CType and field mapping</li><li>Review before records are created</li></ul><a href="https://app.contentflow-ai.de/billing" target="_blank" rel="noopener noreferrer">View plans →</a></div>
+      <div class="cf-coming-visual cf-coming-visual-content"><span>⇄</span><i></i><i></i><i></i></div>
+    </section>
+
+    <section class="cf-card cf-migration-token-card">
+      <div class="cf-card-header">
+        <div class="cf-card-title"><span class="cf-step">S</span><h2>Use this TYPO3 as a migration source</h2></div>
+        <p>Source Connector tokens remain available without a paid target plan.</p>
+      </div>
+      <div class="cf-card-body">
+        <f:form action="generateToken" method="post" class="cf-token-create">
+          <div class="form-group">
+            <label for="tokenLabel">Token label</label>
+            <f:form.textfield name="label" id="tokenLabel" class="form-control" placeholder="Migration to new website" />
+          </div>
+          <button type="submit" class="btn btn-default">Create migration token</button>
+        </f:form>
+        <div class="cf-token-list">
+          <f:for each="{migrationTokens}" as="token">
+            <article>
+              <div>
+                <b>{token.label}</b>
+                <small>{token.token_prefix}… · Created <f:format.date date="{token.created_at}" format="d.m.Y H:i" /></small>
+              </div>
+              <f:if condition="{token.revoked}">
+                <f:then><span class="badge badge-secondary">Revoked</span></f:then>
+                <f:else>
+                  <f:form action="revokeToken" method="post">
+                    <f:form.hidden name="tokenUid" value="{token.uid}" />
+                    <button type="submit" class="btn btn-default btn-sm">Revoke</button>
+                  </f:form>
+                </f:else>
+              </f:if>
+            </article>
+          </f:for>
+        </div>
+      </div>
+    </section>
+  </div>
+</f:section>

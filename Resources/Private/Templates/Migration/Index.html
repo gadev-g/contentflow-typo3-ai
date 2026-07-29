@@ -1,0 +1,141 @@
+<f:layout name="Module" />
+<f:section name="Content">
+  <div class="cf-module">
+    <header class="cf-hero">
+      <div class="cf-brand-copy">
+        <span class="cf-eyebrow">CONTENTFLOW AI · CONTENT MIGRATION</span>
+        <div class="cf-main-row">
+          <div class="cf-logo cf-logo-wordmark">
+            <img src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}" alt="ContentFlow AI" />
+          </div>
+          <div class="cf-heading">
+            <h1>Content Migration</h1>
+            <p>Transfer structured TYPO3 content, collections and media into your new website.</p>
+          </div>
+        </div>
+      </div>
+      <span class="cf-status"><i></i> Starter product</span>
+    </header>
+
+    <f:render partial="ProductMenu" arguments="{currentProduct: 'Content Migration'}" />
+    <f:flashMessages />
+
+    <f:form action="preview" method="post" class="cf-card cf-translation-form">
+      <div class="cf-card-header">
+        <div class="cf-card-title"><span class="cf-step">1</span><h2>Choose source and target</h2></div>
+        <p>The read-only Source Connector exports one page and maps it to the available target CTypes.</p>
+      </div>
+      <div class="cf-card-body">
+        <div class="cf-grid cf-migration-source-grid">
+          <div class="form-group">
+            <label for="sourceUrl">Legacy page URL</label>
+            <f:form.textfield
+              name="sourceUrl"
+              id="sourceUrl"
+              class="form-control"
+              type="url"
+              placeholder="https://legacy.example.com/about-us"
+              required="true"
+            />
+            <small>Enter the exact frontend URL of the page you want to migrate.</small>
+          </div>
+          <div class="form-group">
+            <label for="targetPageUid">Target TYPO3 page UID</label>
+            <f:form.textfield
+              name="targetPageUid"
+              id="targetPageUid"
+              value="{targetPageUid}"
+              class="form-control"
+              type="number"
+              min="1"
+              required="true"
+            />
+            <small>The new content elements are added to this page after approval.</small>
+          </div>
+          <div class="form-group">
+            <label for="migrationToken">Source migration token</label>
+            <f:form.password
+              name="migrationToken"
+              id="migrationToken"
+              class="form-control"
+              autocomplete="off"
+              required="true"
+            />
+            <small>Create this read-only token in Content Migration on the old TYPO3 installation.</small>
+          </div>
+          <div class="form-group">
+            <label for="column">Target column</label>
+            <f:form.select name="column" id="column" class="form-select" options="{0: 'Normal (0)', 1: 'Left (1)', 2: 'Right (2)', 3: 'Border (3)'}" />
+            <small>Select the backend layout column for the imported elements.</small>
+          </div>
+        </div>
+
+        <div class="cf-migration-proof">
+          <span>1</span><p><b>Read</b><small>Extract visible editorial content</small></p>
+          <i>→</i>
+          <span>2</span><p><b>Map</b><small>Match the current TYPO3 CTypes</small></p>
+          <i>→</i>
+          <span>3</span><p><b>Review</b><small>Approve before anything is written</small></p>
+        </div>
+
+        <details class="cf-advanced">
+          <summary>Advanced AI settings</summary>
+          <div class="cf-grid cf-grid-provider">
+            <div class="form-group">
+              <label for="provider">Provider</label>
+              <f:form.select name="provider" id="provider" value="{defaultProvider}" class="form-select" required="true">
+                <f:for each="{providers}" as="provider"><option value="{provider.id}">{provider.id}</option></f:for>
+              </f:form.select>
+            </div>
+            <div class="form-group">
+              <label for="model">Model <span>optional</span></label>
+              <f:form.textfield name="model" id="model" class="form-control" placeholder="Use provider default" />
+            </div>
+          </div>
+        </details>
+      </div>
+      <footer class="cf-card-footer">
+        <div class="cf-safe"><span>✓</span><p><b>Review-first migration</b><br />No target record is created until you approve the plan.</p></div>
+        <button type="submit" id="contentflow-translation-submit" class="btn btn-primary cf-primary">
+          <span class="cf-submit-idle">Create migration preview <span>→</span></span>
+          <span class="cf-submit-loading"><span class="cf-spinner" aria-hidden="true"></span> Reading and mapping …</span>
+        </button>
+      </footer>
+    </f:form>
+
+    <section class="cf-card cf-migration-token-card">
+      <div class="cf-card-header">
+        <div class="cf-card-title"><span class="cf-step">S</span><h2>Source Connector tokens</h2></div>
+        <p>Install this extension on the old TYPO3 instance and create a revocable read-only token.</p>
+      </div>
+      <div class="cf-card-body">
+        <f:form action="generateToken" method="post" class="cf-token-create">
+          <div class="form-group">
+            <label for="tokenLabel">Token label</label>
+            <f:form.textfield name="label" id="tokenLabel" class="form-control" placeholder="Migration to new website" />
+          </div>
+          <button type="submit" class="btn btn-default">Create migration token</button>
+        </f:form>
+        <div class="cf-token-list">
+          <f:for each="{migrationTokens}" as="token">
+            <article>
+              <div>
+                <b>{token.label}</b>
+                <small>{token.token_prefix}… · Created <f:format.date date="{token.created_at}" format="d.m.Y H:i" /></small>
+              </div>
+              <f:if condition="{token.revoked}">
+                <f:then><span class="badge badge-secondary">Revoked</span></f:then>
+                <f:else>
+                  <f:form action="revokeToken" method="post">
+                    <f:form.hidden name="tokenUid" value="{token.uid}" />
+                    <button type="submit" class="btn btn-default btn-sm">Revoke</button>
+                  </f:form>
+                </f:else>
+              </f:if>
+            </article>
+          </f:for>
+        </div>
+      </div>
+    </section>
+  </div>
+</f:section>

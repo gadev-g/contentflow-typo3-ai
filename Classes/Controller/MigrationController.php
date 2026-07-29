@@ -20,6 +20,16 @@ use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
 
 final class MigrationController extends ActionController
 {
+    private const APPEARANCE_FIELDS = [
+        'layout',
+        'header_layout',
+        'header_size',
+        'header_position',
+        'frame_class',
+        'space_before_class',
+        'space_after_class',
+    ];
+
     public function __construct(
         private readonly ModuleTemplateFactory $moduleTemplateFactory,
         private readonly ContentFlowClient $client,
@@ -164,12 +174,15 @@ final class MigrationController extends ActionController
             $typesByName = [];
             $referencePatternLabels = [];
             $catalogPatternLabels = [];
+            $patternsById = [];
+            $patternsByType = [];
             $usedReferencePatterns = [];
             $outsideReferenceCount = 0;
 
             foreach ($targetTypes as $targetType) {
-                $typeLabels[$targetType['type']] = $targetType['label'];
-                $typesByName[$targetType['type']] = $targetType;
+                $typeName = (string) ($targetType['type'] ?? '');
+                $typeLabels[$typeName] = $targetType['label'];
+                $typesByName[$typeName] = $targetType;
 
                 foreach (
                     \is_array($targetType['reference_patterns'] ?? null)
@@ -184,6 +197,8 @@ final class MigrationController extends ActionController
                             $referencePattern['label']
                             ?? $referencePattern['id']
                         );
+                        $patternsById[$referencePattern['id']] = $referencePattern;
+                        $patternsByType[$typeName][$referencePattern['id']] = $referencePattern;
                     }
                 }
 
@@ -200,12 +215,15 @@ final class MigrationController extends ActionController
                             $catalogPattern['label']
                             ?? $catalogPattern['id']
                         );
+                        $patternsById[$catalogPattern['id']] = $catalogPattern;
+                        $patternsByType[$typeName][$catalogPattern['id']] = $catalogPattern;
                     }
                 }
             }
 
             foreach ($items as $itemIndex => &$item) {
                 if (\is_array($item)) {
+                    $item = $this->applyPatternAppearance($item, $patternsById, $patternsByType);
                     $item['target_label'] = $typeLabels[(string) ($item['target_type'] ?? '')]
                         ?? (string) ($item['target_type'] ?? '');
                     $item['reference_pattern_label'] = $referencePatternLabels[
@@ -475,9 +493,9 @@ final class MigrationController extends ActionController
             }
 
             $options = \is_array($fieldOptions[$field] ?? null) ? $fieldOptions[$field] : [];
-            $value = \is_scalar($fieldDefaults[$field] ?? null)
-                ? (string) $fieldDefaults[$field]
-                : (\is_scalar($values[$field] ?? null) ? (string) $values[$field] : '');
+            $value = \is_scalar($values[$field] ?? null)
+                ? (string) $values[$field]
+                : (\is_scalar($fieldDefaults[$field] ?? null) ? (string) $fieldDefaults[$field] : '');
             $definitions[] = [
                 'name' => $field,
                 'label' => \is_string($labels[$field] ?? null) ? $labels[$field] : $field,
@@ -489,6 +507,56 @@ final class MigrationController extends ActionController
         }
 
         return $definitions;
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     * @param array<string, array<string, mixed>> $patternsById
+     * @param array<string, array<string, array<string, mixed>>> $patternsByType
+     *
+     * @return array<string, mixed>
+     */
+    private function applyPatternAppearance(array $item, array $patternsById, array $patternsByType): array
+    {
+        $patternId = (string) ($item['reference_pattern_id'] ?? '');
+
+        if ('' === $patternId) {
+            $patternId = (string) ($item['catalog_pattern_id'] ?? '');
+        }
+
+        $pattern = \is_array($patternsById[$patternId] ?? null) ? $patternsById[$patternId] : [];
+
+        if ([] === $pattern) {
+            $typePatterns = \is_array($patternsByType[(string) ($item['target_type'] ?? '')] ?? null)
+                ? array_values($patternsByType[(string) ($item['target_type'] ?? '')])
+                : [];
+
+            if (1 === \count($typePatterns)) {
+                $pattern = $typePatterns[0];
+            }
+        }
+
+        if ([] === $pattern) {
+            return $item;
+        }
+
+        $fields = \is_array($item['fields'] ?? null) ? $item['fields'] : [];
+        $patternValues = array_merge(
+            \is_array($pattern['field_values'] ?? null) ? $pattern['field_values'] : [],
+            \is_array($pattern['option_values'] ?? null) ? $pattern['option_values'] : [],
+        );
+
+        foreach (self::APPEARANCE_FIELDS as $field) {
+            if (!\is_scalar($patternValues[$field] ?? null)) {
+                continue;
+            }
+
+            $fields[$field] = (string) $patternValues[$field];
+        }
+
+        $item['fields'] = $fields;
+
+        return $item;
     }
 
     /**

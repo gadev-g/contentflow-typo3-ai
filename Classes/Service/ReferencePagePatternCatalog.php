@@ -18,10 +18,17 @@ final readonly class ReferencePagePatternCatalog
      *
      * @return list<array<string, mixed>>
      */
-    public function enrich(array $targetTypes, int $referencePageUid): array
-    {
+    public function enrich(
+        array $targetTypes,
+        int $referencePageUid,
+        string $patternField = 'reference_patterns',
+    ): array {
         if ($referencePageUid <= 0) {
             return $targetTypes;
+        }
+
+        if (!\in_array($patternField, ['reference_patterns', 'catalog_patterns'], true)) {
+            throw new \InvalidArgumentException('Unsupported migration pattern field.');
         }
 
         $typesByName = [];
@@ -33,7 +40,7 @@ final readonly class ReferencePagePatternCatalog
                 continue;
             }
 
-            $targetTypes[$index]['reference_patterns'] = [];
+            $targetTypes[$index][$patternField] = [];
             $typesByName[$type] = $index;
         }
 
@@ -64,7 +71,7 @@ final readonly class ReferencePagePatternCatalog
                 continue;
             }
 
-            if (\count($targetTypes[$targetIndex]['reference_patterns']) >= 25) {
+            if (\count($targetTypes[$targetIndex][$patternField]) >= 25) {
                 continue;
             }
 
@@ -107,7 +114,7 @@ final readonly class ReferencePagePatternCatalog
                 }
             }
 
-            $targetTypes[$targetIndex]['reference_patterns'][] = [
+            $targetTypes[$targetIndex][$patternField][] = [
                 'id' => \sprintf('pages:%d:tt_content:%d', $referencePageUid, (int) $row['uid']),
                 'label' => $this->patternLabel($targetTypes[$targetIndex], $row),
                 'reference_page_uid' => $referencePageUid,

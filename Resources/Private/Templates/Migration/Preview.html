@@ -35,6 +35,9 @@
             <f:if condition="{referencePageUid}">
               <span><b>#{referencePageUid}</b> reference page</span>
             </f:if>
+            <f:if condition="{patternPageUid}">
+              <span><b>#{patternPageUid}</b> pattern library</span>
+            </f:if>
           </div>
           <f:if condition="{referencePageUid}">
             <f:if condition="{outsideReferenceCount}">
@@ -54,10 +57,13 @@
             <f:for each="{items}" as="item" iteration="iteration">
               <article data-contentflow-migration-item="{iteration.index}">
                 <header>
-                  <span>{iteration.cycle}</span>
+                  <span class="cf-migration-step">{iteration.cycle}</span>
                   <div><b>{item.target_label}</b><small>{item.target_type}</small></div>
                   <f:if condition="{item.reference_pattern_label}">
                     <span class="cf-migration-pattern">Reference: {item.reference_pattern_label}</span>
+                  </f:if>
+                  <f:if condition="{item.catalog_pattern_label}">
+                    <span class="cf-migration-pattern is-catalog">Pattern: {item.catalog_pattern_label}</span>
                   </f:if>
                   <label class="cf-migration-enabled">
                     <f:form.checkbox name="items[{iteration.index}][enabled]" value="1" checked="{item.enabled}" />

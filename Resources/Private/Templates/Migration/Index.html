@@ -47,32 +47,70 @@
             />
             <small>Enter the exact frontend URL of the page you want to migrate.</small>
           </div>
+        </div>
+
+        <div class="cf-grid cf-migration-page-grid">
           <div class="form-group">
             <label for="targetPageUid">Target TYPO3 page UID</label>
-            <f:form.textfield
-              name="targetPageUid"
-              id="targetPageUid"
-              value="{targetPageUid}"
-              class="form-control"
-              type="number"
-              min="1"
-              required="true"
-            />
+            <div class="cf-page-picker">
+              <f:form.textfield
+                name="targetPageUid"
+                id="targetPageUid"
+                value="{targetPageUid}"
+                class="form-control"
+                type="number"
+                min="1"
+                required="true"
+              />
+              <button
+                type="button"
+                class="btn btn-default"
+                data-contentflow-page-picker="targetPageUid"
+              >Select page</button>
+            </div>
             <small>The new content elements are added to this page after approval.</small>
           </div>
           <div class="form-group">
             <label for="referencePageUid">Reference page UID <span>optional</span></label>
-            <f:form.textfield
-              name="referencePageUid"
-              id="referencePageUid"
-              class="form-control"
-              type="number"
-              min="0"
-              placeholder="e.g. 42"
-            />
-            <small>ContentFlow prioritizes the real CTypes, variants and layout settings used on this target page.</small>
+            <div class="cf-page-picker">
+              <f:form.textfield
+                name="referencePageUid"
+                id="referencePageUid"
+                class="form-control"
+                type="number"
+                min="0"
+                placeholder="e.g. 42"
+              />
+              <button
+                type="button"
+                class="btn btn-default"
+                data-contentflow-page-picker="referencePageUid"
+              >Select page</button>
+            </div>
+            <small>This page defines the exact target structure, order and appearance.</small>
           </div>
           <div class="form-group">
+            <label for="patternPageUid">Pattern library page UID <span>optional</span></label>
+            <div class="cf-page-picker">
+              <f:form.textfield
+                name="patternPageUid"
+                id="patternPageUid"
+                class="form-control"
+                type="number"
+                min="0"
+                placeholder="e.g. 84"
+              />
+              <button
+                type="button"
+                class="btn btn-default"
+                data-contentflow-page-picker="patternPageUid"
+              >Select page</button>
+            </div>
+            <small>A sample page containing all CTypes and appearance variants supplements the mapping catalogue.</small>
+          </div>
+        </div>
+
+        <div class="form-group cf-migration-token-input">
             <label for="migrationToken">Source migration token</label>
             <f:form.password
               name="migrationToken"
@@ -91,7 +129,6 @@
               <f:form.checkbox name="saveMigrationToken" value="1" />
               <span>Save this token as the global default for future migrations</span>
             </label>
-          </div>
         </div>
 
         <div class="cf-migration-proof">

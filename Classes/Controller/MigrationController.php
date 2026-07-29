@@ -80,6 +80,7 @@ final class MigrationController extends ActionController
         string $model = '',
         bool $saveMigrationToken = false,
         int $referencePageUid = 0,
+        int $patternPageUid = 0,
     ): ResponseInterface {
         try {
             if (!$this->client->hasProduct('content_migration')) {
@@ -140,6 +141,11 @@ final class MigrationController extends ActionController
 
             $targetTypes = $this->targetSchema->availableTypes($targetPageUid, $this->request);
             $targetTypes = $this->referencePatterns->enrich($targetTypes, $referencePageUid);
+            $targetTypes = $this->referencePatterns->enrich(
+                $targetTypes,
+                $patternPageUid,
+                'catalog_patterns',
+            );
             $result = $this->client->planMigration(
                 (string) ($source['url'] ?? $sourceUrl),
                 '' !== $sourceTitle ? $sourceTitle : $sourceUrl,
@@ -157,6 +163,7 @@ final class MigrationController extends ActionController
             $typeLabels = [];
             $typesByName = [];
             $referencePatternLabels = [];
+            $catalogPatternLabels = [];
             $usedReferencePatterns = [];
             $outsideReferenceCount = 0;
 
@@ -179,6 +186,22 @@ final class MigrationController extends ActionController
                         );
                     }
                 }
+
+                foreach (
+                    \is_array($targetType['catalog_patterns'] ?? null)
+                        ? $targetType['catalog_patterns']
+                        : [] as $catalogPattern
+                ) {
+                    if (
+                        \is_array($catalogPattern)
+                        && \is_string($catalogPattern['id'] ?? null)
+                    ) {
+                        $catalogPatternLabels[$catalogPattern['id']] = (string) (
+                            $catalogPattern['label']
+                            ?? $catalogPattern['id']
+                        );
+                    }
+                }
             }
 
             foreach ($items as $itemIndex => &$item) {
@@ -187,6 +210,9 @@ final class MigrationController extends ActionController
                         ?? (string) ($item['target_type'] ?? '');
                     $item['reference_pattern_label'] = $referencePatternLabels[
                         (string) ($item['reference_pattern_id'] ?? '')
+                    ] ?? '';
+                    $item['catalog_pattern_label'] = $catalogPatternLabels[
+                        (string) ($item['catalog_pattern_id'] ?? '')
                     ] ?? '';
                     $referencePatternId = (string) ($item['reference_pattern_id'] ?? '');
 
@@ -243,6 +269,7 @@ final class MigrationController extends ActionController
                 'sourceTitle' => '' !== $sourceTitle ? $sourceTitle : $sourceUrl,
                 'targetPageUid' => $targetPageUid,
                 'referencePageUid' => $referencePageUid,
+                'patternPageUid' => $patternPageUid,
                 'sourceMode' => $sourceMode,
                 'items' => $items,
                 'targetTypes' => $targetTypes,
@@ -257,6 +284,7 @@ final class MigrationController extends ActionController
                 'sourceBlockCount' => \count($blocks),
                 'targetPageUid' => $targetPageUid,
                 'referencePageUid' => $referencePageUid,
+                'patternPageUid' => $patternPageUid,
                 'missingReferencePatterns' => $missingReferencePatterns,
                 'outsideReferenceCount' => $outsideReferenceCount,
                 'items' => $items,

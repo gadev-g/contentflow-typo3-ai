@@ -76,10 +76,7 @@ final readonly class SourcePageExporter
                 'page_uid' => (int) $page['uid'],
             ],
             'page' => $this->editableFields('pages', $page),
-            'elements' => array_map(
-                fn (array $row): array => $this->exportRecord('tt_content', $row, $baseUrl, 0),
-                $rows,
-            ),
+            'elements' => $this->exportRecords($rows, $baseUrl, 0),
             'exported_at' => (new \DateTimeImmutable())->format(\DATE_ATOM),
         ];
     }
@@ -188,29 +185,129 @@ final readonly class SourcePageExporter
     /** @return array<string, mixed>|null */
     private function resolveShortcut(array $row): ?array
     {
-        if (!preg_match('/(?:^|,)tt_content_(\d+)(?:,|$)/', (string) ($row['records'] ?? ''), $match)) {
-            return null;
+        $records = $this->shortcutRecords($row);
+
+        return $records[0] ?? null;
+    }
+
+    /** @param list<array<string, mixed>> $rows
+     *  @return list<array<string, mixed>>
+     */
+    private function exportRecords(array $rows, string $baseUrl, int $depth): array
+    {
+        $elements = [];
+
+        foreach ($rows as $row) {
+            $expandedRows = 'shortcut' === (string) ($row['CType'] ?? '')
+                ? $this->shortcutRecords($row)
+                : [$row];
+
+            if ([] === $expandedRows) {
+                $expandedRows = [$row];
+            }
+
+            foreach ($expandedRows as $expandedRow) {
+                foreach (['colPos', 'sorting', 'tx_gridelements_container', 'tx_gridelements_columns'] as $field) {
+                    if (array_key_exists($field, $row)) {
+                        $expandedRow[$field] = $row[$field];
+                    }
+                }
+
+                $element = $this->exportRecord('tt_content', $expandedRow, $baseUrl, $depth);
+
+                if ((int) ($expandedRow['uid'] ?? 0) !== (int) ($row['uid'] ?? 0)) {
+                    $element['source_reference'] = 'shortcut:' . (int) ($row['uid'] ?? 0);
+                }
+
+                $elements[] = $element;
+            }
         }
 
+        return $elements;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function shortcutRecords(array $row): array
+    {
+        if (
+            !preg_match_all(
+                '/(?:^|,)\s*(tt_content|pages)_(\d+)(?=\s*,|$)/',
+                (string) ($row['records'] ?? ''),
+                $matches,
+                \PREG_SET_ORDER,
+            )
+        ) {
+            return [];
+        }
+
+        $records = [];
+
+        foreach ($matches as $match) {
+            if ('pages' === $match[1]) {
+                $records = array_merge($records, $this->pageContentRecords((int) $match[2]));
+                continue;
+            }
+
+            $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+                ->getQueryBuilderForTable('tt_content');
+            $record = $queryBuilder
+                ->select('*')
+                ->from('tt_content')
+                ->where(
+                    $queryBuilder->expr()->eq(
+                        'uid',
+                        $queryBuilder->createNamedParameter((int) $match[2], Connection::PARAM_INT),
+                    ),
+                    $queryBuilder->expr()->eq(
+                        'hidden',
+                        $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
+                    ),
+                )
+                ->setMaxResults(1)
+                ->executeQuery()
+                ->fetchAssociative();
+
+            if (false !== $record) {
+                $records[] = $record;
+            }
+        }
+
+        return $records;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function pageContentRecords(int $pageUid): array
+    {
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
-        $record = $queryBuilder
-            ->select('*')
-            ->from('tt_content')
-            ->where(
+        $constraints = [
+            $queryBuilder->expr()->eq(
+                'pid',
+                $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT),
+            ),
+            $queryBuilder->expr()->eq(
+                'hidden',
+                $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
+            ),
+        ];
+
+        if ($this->hasColumn('tt_content', 'tx_gridelements_container')) {
+            $constraints[] = $queryBuilder->expr()->or(
                 $queryBuilder->expr()->eq(
-                    'uid',
-                    $queryBuilder->createNamedParameter((int) $match[1], Connection::PARAM_INT),
-                ),
-                $queryBuilder->expr()->eq(
-                    'hidden',
+                    'tx_gridelements_container',
                     $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
                 ),
-            )
-            ->setMaxResults(1)
-            ->executeQuery()
-            ->fetchAssociative();
+                $queryBuilder->expr()->isNull('tx_gridelements_container'),
+            );
+        }
 
-        return false === $record ? null : $record;
+        return $queryBuilder
+            ->select('*')
+            ->from('tt_content')
+            ->where(...$constraints)
+            ->orderBy('colPos')
+            ->addOrderBy('sorting')
+            ->executeQuery()
+            ->fetchAllAssociative();
     }
 
     /** @return list<array<string, mixed>> */
@@ -243,10 +340,7 @@ final readonly class SourcePageExporter
             ->executeQuery()
             ->fetchAllAssociative();
 
-        return array_map(
-            fn (array $child): array => $this->exportRecord('tt_content', $child, $baseUrl, $depth),
-            $rows,
-        );
+        return $this->exportRecords($rows, $baseUrl, $depth);
     }
 
     private function hasColumn(string $table, string $column): bool

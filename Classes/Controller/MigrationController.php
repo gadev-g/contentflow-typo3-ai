@@ -149,9 +149,11 @@ final class MigrationController extends ActionController
             }
 
             $typeLabels = [];
+            $typesByName = [];
 
             foreach ($targetTypes as $targetType) {
                 $typeLabels[$targetType['type']] = $targetType['label'];
+                $typesByName[$targetType['type']] = $targetType;
             }
 
             foreach ($items as $itemIndex => &$item) {
@@ -163,12 +165,25 @@ final class MigrationController extends ActionController
                     $item['relations'] = \is_array($item['relations'] ?? null) ? $item['relations'] : [];
                     $item['enabled'] = true;
                     $item['order'] = $itemIndex;
+                    $item['field_definitions'] = $this->fieldDefinitions(
+                        $typesByName[(string) ($item['target_type'] ?? '')] ?? [],
+                        \is_array($item['fields'] ?? null) ? $item['fields'] : [],
+                    );
                 }
             }
 
             unset($item);
 
             $token = bin2hex(random_bytes(24));
+            $targetTypeSchemaJson = json_encode(
+                $targetTypes,
+                \JSON_THROW_ON_ERROR
+                | \JSON_HEX_AMP
+                | \JSON_HEX_APOS
+                | \JSON_HEX_QUOT
+                | \JSON_HEX_TAG
+                | \JSON_UNESCAPED_UNICODE,
+            );
             $this->backendUser()->setAndSaveSessionData('contentflow_migration_' . $token, [
                 'sourceUrl' => (string) ($source['url'] ?? $sourceUrl),
                 'sourceTitle' => (string) ($source['title'] ?? $sourceUrl),
@@ -188,6 +203,7 @@ final class MigrationController extends ActionController
                 'targetPageUid' => $targetPageUid,
                 'items' => $items,
                 'targetTypes' => $targetTypes,
+                'targetTypeSchemaJson' => $targetTypeSchemaJson,
                 'previewToken' => $token,
                 'meta' => $result['meta'] ?? [],
                 'debug' => $result['_debug'] ?? null,
@@ -332,6 +348,46 @@ final class MigrationController extends ActionController
         usort($merged, static fn (array $left, array $right): int => $left['order'] <=> $right['order']);
 
         return $merged;
+    }
+
+    /**
+     * @param array<string, mixed> $targetType
+     * @param array<string, mixed> $values
+     *
+     * @return list<array{
+     *     name: string,
+     *     label: string,
+     *     value: string,
+     *     options: array<string, string>,
+     *     is_select: bool
+     * }>
+     */
+    private function fieldDefinitions(array $targetType, array $values): array
+    {
+        $fields = \is_array($targetType['fields'] ?? null) ? $targetType['fields'] : [];
+        $labels = \is_array($targetType['field_labels'] ?? null) ? $targetType['field_labels'] : [];
+        $fieldOptions = \is_array($targetType['field_options'] ?? null)
+            ? $targetType['field_options']
+            : [];
+        $definitions = [];
+
+        foreach ($fields as $field) {
+            if (!\is_string($field)) {
+                continue;
+            }
+
+            $options = \is_array($fieldOptions[$field] ?? null) ? $fieldOptions[$field] : [];
+            $value = \is_scalar($values[$field] ?? null) ? (string) $values[$field] : '';
+            $definitions[] = [
+                'name' => $field,
+                'label' => \is_string($labels[$field] ?? null) ? $labels[$field] : $field,
+                'value' => $value,
+                'options' => $options,
+                'is_select' => [] !== $options,
+            ];
+        }
+
+        return $definitions;
     }
 
     private function backendUser(): BackendUserAuthentication

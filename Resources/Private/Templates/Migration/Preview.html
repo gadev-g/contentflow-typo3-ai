@@ -35,7 +35,7 @@
           </div>
           <div class="cf-migration-items">
             <f:for each="{items}" as="item" iteration="iteration">
-              <article>
+              <article data-contentflow-migration-item="{iteration.index}">
                 <header>
                   <span>{iteration.cycle}</span>
                   <div><b>{item.target_label}</b><small>{item.target_type}</small></div>
@@ -53,7 +53,7 @@
                       options="{targetTypes}"
                       optionValueField="type"
                       optionLabelField="label"
-                      class="form-select"
+                      class="form-select cf-migration-target-type"
                     />
                   </div>
                   <div class="form-group">
@@ -61,11 +61,30 @@
                     <f:form.textfield name="items[{iteration.index}][order]" value="{iteration.index}" type="number" class="form-control" />
                   </div>
                 </div>
-                <div class="cf-migration-fields">
-                  <f:for each="{item.fields}" as="value" key="field">
+                <div class="cf-migration-fields" data-contentflow-migration-fields>
+                  <f:for each="{item.field_definitions}" as="definition">
                     <label>
-                      <span>{field}</span>
-                      <f:form.textarea name="items[{iteration.index}][fields][{field}]" value="{value}" rows="4" class="form-control" />
+                      <span>{definition.label}<small>{definition.name}</small></span>
+                      <f:if condition="{definition.is_select}">
+                        <f:then>
+                          <f:form.select
+                            name="items[{iteration.index}][fields][{definition.name}]"
+                            value="{definition.value}"
+                            options="{definition.options}"
+                            prependOptionLabel="Use TYPO3 default"
+                            prependOptionValue=""
+                            class="form-select"
+                          />
+                        </f:then>
+                        <f:else>
+                          <f:form.textarea
+                            name="items[{iteration.index}][fields][{definition.name}]"
+                            value="{definition.value}"
+                            rows="3"
+                            class="form-control"
+                          />
+                        </f:else>
+                      </f:if>
                     </label>
                   </f:for>
                 </div>
@@ -90,5 +109,6 @@
         </footer>
       </section>
     </f:form>
+    <script type="application/json" id="contentflow-migration-target-schema"><f:format.raw>{targetTypeSchemaJson}</f:format.raw></script>
   </div>
 </f:section>

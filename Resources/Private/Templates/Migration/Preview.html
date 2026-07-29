@@ -32,6 +32,9 @@
             <span><b>{sourceBlockCount}</b> source records</span>
             <span><b>{items -> f:count()}</b> target elements</span>
             <span><b>#{targetPageUid}</b> target page</span>
+            <f:if condition="{referencePageUid}">
+              <span><b>#{referencePageUid}</b> reference page</span>
+            </f:if>
           </div>
           <div class="cf-migration-items">
             <f:for each="{items}" as="item" iteration="iteration">
@@ -39,6 +42,9 @@
                 <header>
                   <span>{iteration.cycle}</span>
                   <div><b>{item.target_label}</b><small>{item.target_type}</small></div>
+                  <f:if condition="{item.reference_pattern_label}">
+                    <span class="cf-migration-pattern">Reference: {item.reference_pattern_label}</span>
+                  </f:if>
                   <label class="cf-migration-enabled">
                     <f:form.checkbox name="items[{iteration.index}][enabled]" value="1" checked="true" />
                     Import

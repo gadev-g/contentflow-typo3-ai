@@ -8,6 +8,7 @@ use ContentFlow\Typo3Translation\Service\ContentFlowClient;
 use ContentFlow\Typo3Translation\Service\HtmlSourceScraper;
 use ContentFlow\Typo3Translation\Service\MigrationContentWriter;
 use ContentFlow\Typo3Translation\Service\MigrationTokenService;
+use ContentFlow\Typo3Translation\Service\ReferencePagePatternCatalog;
 use ContentFlow\Typo3Translation\Service\SourceConnectorClient;
 use ContentFlow\Typo3Translation\Service\TargetContentSchema;
 use Psr\Http\Message\ResponseInterface;
@@ -27,6 +28,7 @@ final class MigrationController extends ActionController
         private readonly TargetContentSchema $targetSchema,
         private readonly MigrationContentWriter $writer,
         private readonly MigrationTokenService $tokens,
+        private readonly ReferencePagePatternCatalog $referencePatterns,
         private readonly ExtensionConfiguration $extensionConfiguration,
     ) {
     }
@@ -77,6 +79,7 @@ final class MigrationController extends ActionController
         string $migrationToken = '',
         string $model = '',
         bool $saveMigrationToken = false,
+        int $referencePageUid = 0,
     ): ResponseInterface {
         try {
             if (!$this->client->hasProduct('content_migration')) {
@@ -108,6 +111,8 @@ final class MigrationController extends ActionController
                 : $this->sourceConnector->export($sourceUrl, $migrationToken);
             $source = \is_array($export['source'] ?? null) ? $export['source'] : [];
             $elements = \is_array($export['elements'] ?? null) ? array_values($export['elements']) : [];
+            $sourceTitle = trim((string) ($source['title'] ?? ''));
+            $elements = $this->prependSourceTitle($elements, $sourceTitle, $source);
 
             if ([] === $elements) {
                 throw new \RuntimeException('The source page contains no exportable content elements.');
@@ -134,9 +139,10 @@ final class MigrationController extends ActionController
             }
 
             $targetTypes = $this->targetSchema->availableTypes($targetPageUid, $this->request);
+            $targetTypes = $this->referencePatterns->enrich($targetTypes, $referencePageUid);
             $result = $this->client->planMigration(
                 (string) ($source['url'] ?? $sourceUrl),
-                (string) ($source['title'] ?? $sourceUrl),
+                '' !== $sourceTitle ? $sourceTitle : $sourceUrl,
                 $blocks,
                 $targetTypes,
                 $provider,
@@ -150,18 +156,41 @@ final class MigrationController extends ActionController
 
             $typeLabels = [];
             $typesByName = [];
+            $referencePatternLabels = [];
 
             foreach ($targetTypes as $targetType) {
                 $typeLabels[$targetType['type']] = $targetType['label'];
                 $typesByName[$targetType['type']] = $targetType;
+
+                foreach (
+                    \is_array($targetType['reference_patterns'] ?? null)
+                        ? $targetType['reference_patterns']
+                        : [] as $referencePattern
+                ) {
+                    if (
+                        \is_array($referencePattern)
+                        && \is_string($referencePattern['id'] ?? null)
+                    ) {
+                        $referencePatternLabels[$referencePattern['id']] = (string) (
+                            $referencePattern['label']
+                            ?? $referencePattern['id']
+                        );
+                    }
+                }
             }
 
             foreach ($items as $itemIndex => &$item) {
                 if (\is_array($item)) {
                     $item['target_label'] = $typeLabels[(string) ($item['target_type'] ?? '')]
                         ?? (string) ($item['target_type'] ?? '');
+                    $item['reference_pattern_label'] = $referencePatternLabels[
+                        (string) ($item['reference_pattern_id'] ?? '')
+                    ] ?? '';
                     $sourceIndex = (int) ($item['source_index'] ?? -1);
-                    $item['source_record'] = $elements[$sourceIndex] ?? [];
+                    $sourceIndices = \is_array($item['source_indices'] ?? null)
+                        ? $item['source_indices']
+                        : [$sourceIndex];
+                    $item['source_record'] = $this->combinedSourceRecord($elements, $sourceIndices);
                     $item['relations'] = \is_array($item['relations'] ?? null) ? $item['relations'] : [];
                     $item['enabled'] = true;
                     $item['order'] = $itemIndex;
@@ -186,8 +215,9 @@ final class MigrationController extends ActionController
             );
             $this->backendUser()->setAndSaveSessionData('contentflow_migration_' . $token, [
                 'sourceUrl' => (string) ($source['url'] ?? $sourceUrl),
-                'sourceTitle' => (string) ($source['title'] ?? $sourceUrl),
+                'sourceTitle' => '' !== $sourceTitle ? $sourceTitle : $sourceUrl,
                 'targetPageUid' => $targetPageUid,
+                'referencePageUid' => $referencePageUid,
                 'sourceMode' => $sourceMode,
                 'items' => $items,
                 'targetTypes' => $targetTypes,
@@ -198,9 +228,10 @@ final class MigrationController extends ActionController
             $module = $this->moduleTemplateFactory->create($this->request);
             $module->assignMultiple([
                 'sourceUrl' => (string) ($source['url'] ?? $sourceUrl),
-                'sourceTitle' => (string) ($source['title'] ?? $sourceUrl),
+                'sourceTitle' => '' !== $sourceTitle ? $sourceTitle : $sourceUrl,
                 'sourceBlockCount' => \count($blocks),
                 'targetPageUid' => $targetPageUid,
+                'referencePageUid' => $referencePageUid,
                 'items' => $items,
                 'targetTypes' => $targetTypes,
                 'targetTypeSchemaJson' => $targetTypeSchemaJson,
@@ -403,6 +434,112 @@ final class MigrationController extends ActionController
         }
 
         return $definitions;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $elements
+     * @param array<string, mixed>       $source
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function prependSourceTitle(array $elements, string $sourceTitle, array $source): array
+    {
+        $sourceUrl = \is_scalar($source['url'] ?? null) ? (string) $source['url'] : '';
+
+        if (
+            '' === $sourceTitle
+            || $this->normalizeEditorialText($sourceTitle) === $this->normalizeEditorialText($sourceUrl)
+            || $this->containsSourceTitle($elements, $sourceTitle)
+        ) {
+            return $elements;
+        }
+
+        array_unshift($elements, [
+            'source_table' => 'pages',
+            'source_uid' => (int) ($source['page_uid'] ?? 0),
+            'type' => 'header',
+            'column' => 0,
+            'sorting' => 0,
+            'fields' => ['header' => $sourceTitle],
+            'relations' => [],
+            'media' => [],
+            'synthetic' => true,
+        ]);
+
+        return $elements;
+    }
+
+    /** @param list<array<string, mixed>> $elements */
+    private function containsSourceTitle(array $elements, string $sourceTitle): bool
+    {
+        $normalizedTitle = $this->normalizeEditorialText($sourceTitle);
+
+        foreach ($elements as $element) {
+            $fields = \is_array($element['fields'] ?? null) ? $element['fields'] : [];
+
+            foreach (['header', 'title', 'headline'] as $field) {
+                if (
+                    \is_scalar($fields[$field] ?? null)
+                    && $normalizedTitle === $this->normalizeEditorialText((string) $fields[$field])
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $elements
+     * @param list<mixed>                $sourceIndices
+     *
+     * @return array<string, mixed>
+     */
+    private function combinedSourceRecord(array $elements, array $sourceIndices): array
+    {
+        $combined = [];
+        $media = [];
+        $relations = [];
+
+        foreach ($sourceIndices as $sourceIndex) {
+            $index = filter_var($sourceIndex, \FILTER_VALIDATE_INT);
+            $record = false !== $index && \is_array($elements[$index] ?? null)
+                ? $elements[$index]
+                : [];
+
+            if ([] === $record) {
+                continue;
+            }
+
+            if ([] === $combined) {
+                $combined = $record;
+            }
+
+            foreach (\is_array($record['media'] ?? null) ? $record['media'] : [] as $mediaItem) {
+                if (\is_array($mediaItem)) {
+                    $media[] = $mediaItem;
+                }
+            }
+
+            foreach (\is_array($record['relations'] ?? null) ? $record['relations'] : [] as $field => $children) {
+                if (\is_string($field) && \is_array($children)) {
+                    $relations[$field] = array_merge($relations[$field] ?? [], $children);
+                }
+            }
+        }
+
+        $combined['media'] = $media;
+        $combined['relations'] = $relations;
+
+        return $combined;
+    }
+
+    private function normalizeEditorialText(string $value): string
+    {
+        $plainText = html_entity_decode(strip_tags($value), \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
+
+        return mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $plainText)), 'UTF-8');
     }
 
     private function backendUser(): BackendUserAuthentication

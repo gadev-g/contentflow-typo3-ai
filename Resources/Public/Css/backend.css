@@ -292,6 +292,8 @@
 .cf-migration-enabled { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .cf-migration-item-settings { grid-template-columns: minmax(260px, 2fr) 1fr 1fr; padding: 16px; }
 .cf-migration-fields { display: grid; gap: 14px; padding: 0 16px 16px; }
+.cf-migration-quick-fields { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); padding: 16px; border-top: 1px solid #e7edf5; background: #fbfdff; }
+.cf-migration-quick-fields:empty { display: none; }
 .cf-migration-fields label { display: grid; gap: 7px; }
 .cf-migration-fields label > span { font-weight: 700; }
 .cf-migration-fields label > span small { display: block; margin-top: 2px; color: #7a899c; font-size: 10px; font-weight: 500; }

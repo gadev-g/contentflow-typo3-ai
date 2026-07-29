@@ -39,6 +39,7 @@ final readonly class TargetContentSchema
      *     fields: list<string>,
      *     field_labels: array<string, string>,
      *     field_options: array<string, array<string, string>>,
+     *     field_defaults: array<string, string>,
      *     relations: array<string, array{
      *         table: string,
      *         fields: list<string>,
@@ -63,6 +64,7 @@ final readonly class TargetContentSchema
             $processedColumns = $this->processedColumns($type, $targetPageUid, $request);
             $fields = $this->editableFields($type, $processedColumns);
             $relations = $this->editableRelations($type, $processedColumns);
+            $fieldOptions = $this->fieldOptions($fields, $processedColumns);
 
             if ([] === $fields && [] === $relations) {
                 continue;
@@ -73,7 +75,8 @@ final readonly class TargetContentSchema
                 'label' => $this->itemLabel($item, $type),
                 'fields' => $fields,
                 'field_labels' => $this->fieldLabels($fields, $processedColumns),
-                'field_options' => $this->fieldOptions($fields, $processedColumns),
+                'field_options' => $fieldOptions,
+                'field_defaults' => $this->fieldDefaults($fieldOptions),
                 'relations' => $relations,
             ];
         }
@@ -85,6 +88,7 @@ final readonly class TargetContentSchema
                 'fields' => ['header', 'bodytext'],
                 'field_labels' => ['header' => 'Header', 'bodytext' => 'Text'],
                 'field_options' => [],
+                'field_defaults' => [],
                 'relations' => [],
             ]];
         }
@@ -236,6 +240,30 @@ final readonly class TargetContentSchema
         }
 
         return $options;
+    }
+
+    /**
+     * @param array<string, array<string, string>> $fieldOptions
+     *
+     * @return array<string, string>
+     */
+    private function fieldDefaults(array $fieldOptions): array
+    {
+        $defaults = [];
+
+        if (isset($fieldOptions['frame_class']['container'])) {
+            $defaults['frame_class'] = 'container';
+        }
+
+        foreach (['space_before_class', 'space_after_class'] as $spacingField) {
+            $firstSpacing = array_key_first($fieldOptions[$spacingField] ?? []);
+
+            if (null !== $firstSpacing && '' !== (string) $firstSpacing) {
+                $defaults[$spacingField] = (string) $firstSpacing;
+            }
+        }
+
+        return $defaults;
     }
 
     /**

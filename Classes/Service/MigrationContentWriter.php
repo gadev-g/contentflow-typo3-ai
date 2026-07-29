@@ -52,7 +52,9 @@ final readonly class MigrationContentWriter
 
             $relations = \is_array($item['relations'] ?? null) ? $item['relations'] : [];
             $sourceRecord = \is_array($item['source_record'] ?? null) ? $item['source_record'] : [];
-            $sourceMedia = \is_array($sourceRecord['media'] ?? null) ? $sourceRecord['media'] : [];
+            $sourceMedia = false === ($item['import_media'] ?? true)
+                ? []
+                : (\is_array($sourceRecord['media'] ?? null) ? $sourceRecord['media'] : []);
             if ([] === $fields && [] === $relations && [] === $sourceMedia) {
                 continue;
             }
@@ -101,12 +103,14 @@ final readonly class MigrationContentWriter
             }
 
             $this->writeInlineRelations('tt_content', $parentUid, $pageUid, $relations,);
-            $this->writeMedia(
-                'tt_content',
-                $parentUid,
-                $pageUid,
-                \is_array($sourceRecord['media'] ?? null) ? $sourceRecord['media'] : [],
-            );
+            if (false !== ($item['import_media'] ?? true)) {
+                $this->writeMedia(
+                    'tt_content',
+                    $parentUid,
+                    $pageUid,
+                    \is_array($sourceRecord['media'] ?? null) ? $sourceRecord['media'] : [],
+                );
+            }
         }
     }
 

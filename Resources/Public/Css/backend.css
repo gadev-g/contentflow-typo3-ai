@@ -300,6 +300,11 @@
 .cf-migration-pattern.is-catalog { color: #6141c8; background: #f1edff; }
 .cf-migration-blueprint-warning { display: grid; gap: 3px; margin: 0 0 14px; padding: 12px 14px; border: 1px solid #f0c77d; border-radius: 10px; background: #fff8e8; color: #7c5312; font-size: 12px; }
 .cf-migration-blueprint-warning b { color: #593807; }
+.cf-migration-layout-picker { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(300px, 1.2fr); align-items: center; gap: 20px; padding: 16px; border-top: 1px solid #e7edf5; background: #fff; }
+.cf-migration-layout-picker label, .cf-migration-layout-picker label > span, .cf-migration-layout-picker label > small { display: block; }
+.cf-migration-layout-picker label { margin: 0; }
+.cf-migration-layout-picker label > span { color: #25344b; font-weight: 800; }
+.cf-migration-layout-picker label > small { margin-top: 3px; color: #78889d; font-size: 10px; font-weight: 500; }
 .cf-migration-item-settings { grid-template-columns: minmax(260px, 2fr) 1fr 1fr; padding: 16px; }
 .cf-migration-fields { display: grid; gap: 14px; padding: 0 16px 16px; }
 .cf-migration-quick-fields { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); padding: 16px; border-top: 1px solid #e7edf5; background: #fbfdff; }
@@ -317,4 +322,4 @@
 .cf-migration-options[open] > summary { background: #f8fbff; }
 .cf-migration-options[open] > summary i { transform: rotate(225deg); }
 .cf-migration-options-body { border-top: 1px solid #e7edf5; }
-@media (max-width: 900px) { .cf-token-create { grid-template-columns: 1fr; grid-template-areas: "field" "action"; } .cf-token-create > .btn { width: 100%; } .cf-migration-item-settings { grid-template-columns: 1fr; } .cf-migration-token-default { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 900px) { .cf-token-create { grid-template-columns: 1fr; grid-template-areas: "field" "action"; } .cf-token-create > .btn { width: 100%; } .cf-migration-layout-picker, .cf-migration-item-settings { grid-template-columns: 1fr; } .cf-migration-token-default { align-items: flex-start; flex-direction: column; } }

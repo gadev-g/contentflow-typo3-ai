@@ -59,9 +59,25 @@ final readonly class MigrationContentWriter
             $sourceMedia = false === ($item['import_media'] ?? true)
                 ? []
                 : (\is_array($sourceRecord['media'] ?? null) ? $sourceRecord['media'] : []);
-            if ([] === $fields && [] === $relations && [] === $sourceMedia) {
+            $sourceRelations = \is_array($sourceRecord['relations'] ?? null)
+                ? $sourceRecord['relations']
+                : [];
+            $containerChildren = \is_array($sourceRelations['contentflow_grid_children'] ?? null)
+                ? $sourceRelations['contentflow_grid_children']
+                : [];
+            $containerColumns = \is_array($item['container_columns'] ?? null)
+                ? $item['container_columns']
+                : [];
+
+            if (
+                [] === $fields
+                && [] === $relations
+                && [] === $sourceMedia
+                && ([] === $containerChildren || [] === $containerColumns)
+            ) {
                 continue;
             }
+
             $identifier = 'NEW_contentflow_migration_' . $index;
             $data['tt_content'][$identifier] = [
                 'pid' => $pageUid,
@@ -89,6 +105,7 @@ final readonly class MigrationContentWriter
         $this->enforceSorting('tt_content', 'sorting', $sortingByIdentifier, $handler);
         $created = \count($data['tt_content']);
         $this->writeRelationsAndMedia($handler, $pageUid, $items);
+        $created += $this->writeContainerChildren($handler, $pageUid, $items);
 
         return $created;
     }
@@ -260,6 +277,184 @@ final readonly class MigrationContentWriter
         if ([] !== $handler->errorLog) {
             throw new \RuntimeException(implode(' ', $handler->errorLog));
         }
+    }
+
+    /** @param list<array<string, mixed>> $items */
+    private function writeContainerChildren(
+        DataHandler $parentHandler,
+        int $pageUid,
+        array $items,
+    ): int {
+        if (!isset($GLOBALS['TCA']['tt_content']['columns']['tx_container_parent'])) {
+            return 0;
+        }
+
+        $allowedTypes = [];
+
+        foreach ($this->schema->availableTypes() as $type) {
+            $allowedTypes[$type['type']] = array_fill_keys($type['fields'], true);
+        }
+
+        $created = 0;
+
+        foreach ($items as $itemIndex => $item) {
+            $columns = array_values(array_filter(
+                array_map('intval', \is_array($item['container_columns'] ?? null)
+                    ? $item['container_columns']
+                    : []),
+                static fn (int $column): bool => $column > 0,
+            ));
+            $parentUid = (int) (
+                $parentHandler->substNEWwithIDs['NEW_contentflow_migration_' . $itemIndex]
+                ?? 0
+            );
+
+            if ([] === $columns || $parentUid <= 0) {
+                continue;
+            }
+
+            $sourceRecord = \is_array($item['source_record'] ?? null) ? $item['source_record'] : [];
+            $relations = \is_array($sourceRecord['relations'] ?? null) ? $sourceRecord['relations'] : [];
+            $children = \is_array($relations['contentflow_grid_children'] ?? null)
+                ? array_values($relations['contentflow_grid_children'])
+                : [];
+
+            if ([] === $children) {
+                continue;
+            }
+
+            $sourceColumns = [];
+
+            foreach ($children as $child) {
+                if (\is_array($child)) {
+                    $sourceColumns[] = (int) ($child['column'] ?? 0);
+                }
+            }
+
+            $sourceColumns = array_values(array_unique($sourceColumns));
+            sort($sourceColumns);
+            $columnMap = [];
+
+            foreach ($sourceColumns as $index => $sourceColumn) {
+                $columnMap[$sourceColumn] = $columns[min($index, \count($columns) - 1)];
+            }
+
+            $data = [];
+            $preparedChildren = [];
+
+            foreach ($children as $index => $child) {
+                if (!\is_array($child)) {
+                    continue;
+                }
+
+                $sourceFields = \is_array($child['fields'] ?? null) ? $child['fields'] : [];
+                $sourceMedia = \is_array($child['media'] ?? null) ? $child['media'] : [];
+                $targetType = $this->containerChildType(
+                    (string) ($child['type'] ?? ''),
+                    $sourceFields,
+                    $sourceMedia,
+                    $allowedTypes,
+                );
+
+                if ('' === $targetType) {
+                    continue;
+                }
+
+                $safeFields = [];
+                $rewrittenFields = $this->rewriteLinkedDocuments(
+                    $sourceFields,
+                    \is_array($child['linked_files'] ?? null) ? $child['linked_files'] : [],
+                );
+
+                foreach ($rewrittenFields as $field => $value) {
+                    if (
+                        \is_string($field)
+                        && \is_scalar($value)
+                        && isset($allowedTypes[$targetType][$field])
+                    ) {
+                        $safeFields[$field] = $this->sanitizeField($field, (string) $value);
+                    }
+                }
+
+                $sourceColumn = (int) ($child['column'] ?? 0);
+                $targetColumn = $columnMap[$sourceColumn]
+                    ?? $columns[$index % \count($columns)];
+                $identifier = 'NEW_contentflow_container_' . $parentUid . '_' . $index;
+                $data['tt_content'][$identifier] = [
+                    'pid' => $pageUid,
+                    'CType' => $targetType,
+                    'colPos' => $targetColumn,
+                    'sorting' => ($index + 1) * 256,
+                    'tx_container_parent' => $parentUid,
+                    ...$safeFields,
+                ];
+                $preparedChildren[$identifier] = $child;
+            }
+
+            if ([] === $data) {
+                continue;
+            }
+
+            $handler = GeneralUtility::makeInstance(DataHandler::class);
+            $handler->start($data, []);
+            $handler->process_datamap();
+
+            if ([] !== $handler->errorLog) {
+                throw new \RuntimeException(implode(' ', $handler->errorLog));
+            }
+
+            foreach ($preparedChildren as $identifier => $child) {
+                $childUid = (int) ($handler->substNEWwithIDs[$identifier] ?? 0);
+
+                if ($childUid <= 0) {
+                    continue;
+                }
+
+                $this->writeMedia(
+                    'tt_content',
+                    $childUid,
+                    $pageUid,
+                    \is_array($child['media'] ?? null) ? $child['media'] : [],
+                );
+                ++$created;
+            }
+        }
+
+        return $created;
+    }
+
+    /**
+     * @param array<string, mixed>                    $fields
+     * @param list<array<string, mixed>>              $media
+     * @param array<string, array<string, true>>       $allowedTypes
+     */
+    private function containerChildType(
+        string $sourceType,
+        array $fields,
+        array $media,
+        array $allowedTypes,
+    ): string {
+        if (isset($allowedTypes[$sourceType])) {
+            return $sourceType;
+        }
+
+        if ([] !== $media && isset($allowedTypes['textpic'])) {
+            return 'textpic';
+        }
+
+        if ([] !== $media && isset($allowedTypes['image'])) {
+            return 'image';
+        }
+
+        if (
+            ('' !== trim((string) ($fields['bodytext'] ?? ''))
+                || '' !== trim((string) ($fields['header'] ?? '')))
+            && isset($allowedTypes['text'])
+        ) {
+            return 'text';
+        }
+
+        return '';
     }
 
     private function sanitizeField(string $field, string $value): string

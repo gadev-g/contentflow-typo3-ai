@@ -125,6 +125,10 @@ final readonly class ReferencePagePatternCatalog
                 'option_values' => $optionValues,
                 'empty_fields' => $emptyFields,
                 'relation_counts' => $this->relationCounts($targetTypes[$targetIndex], (int) $row['uid']),
+                'container_columns' => $this->containerColumns(
+                    $referencePageUid,
+                    (int) $row['uid'],
+                ),
             ];
         }
 
@@ -181,5 +185,40 @@ final readonly class ReferencePagePatternCatalog
         }
 
         return $counts;
+    }
+
+    /** @return list<int> */
+    private function containerColumns(int $pageUid, int $parentUid): array
+    {
+        $connection = $this->connectionPool->getConnectionForTable('tt_content');
+        $schemaManager = $connection->createSchemaManager();
+
+        if (
+            !$schemaManager->tablesExist(['tt_content'])
+            || !$schemaManager->introspectTable('tt_content')->hasColumn('tx_container_parent')
+        ) {
+            return [];
+        }
+
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('tt_content');
+        $columns = $queryBuilder
+            ->select('colPos')
+            ->from('tt_content')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'pid',
+                    $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT),
+                ),
+                $queryBuilder->expr()->eq(
+                    'tx_container_parent',
+                    $queryBuilder->createNamedParameter($parentUid, Connection::PARAM_INT),
+                ),
+            )
+            ->orderBy('colPos')
+            ->addOrderBy('sorting')
+            ->executeQuery()
+            ->fetchFirstColumn();
+
+        return array_values(array_unique(array_map('intval', $columns)));
     }
 }

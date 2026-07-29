@@ -346,7 +346,11 @@ final class MigrationController extends ActionController
                 throw new \RuntimeException('The migration preview expired. Please create it again.');
             }
 
-            $editedItems = $this->mergeSubmittedItems($preview['items'], $items);
+            $editedItems = $this->mergeSubmittedItems(
+                $preview['items'],
+                $items,
+                \is_array($preview['targetTypes'] ?? null) ? $preview['targetTypes'] : [],
+            );
             $this->client->reportMigrationEvent(
                 (string) ($preview['migrationId'] ?? ''),
                 'applying',
@@ -425,9 +429,20 @@ final class MigrationController extends ActionController
      *
      * @return list<array<string, mixed>>
      */
-    private function mergeSubmittedItems(array $storedItems, array $submittedItems): array
+    private function mergeSubmittedItems(
+        array $storedItems,
+        array $submittedItems,
+        array $targetTypes = [],
+    ): array
     {
         $merged = [];
+        $typesByName = [];
+
+        foreach ($targetTypes as $targetType) {
+            if (\is_array($targetType) && \is_string($targetType['type'] ?? null)) {
+                $typesByName[$targetType['type']] = $targetType;
+            }
+        }
 
         foreach ($storedItems as $index => $stored) {
             $submitted = \is_array($submittedItems[$index] ?? null) ? $submittedItems[$index] : [];
@@ -436,7 +451,8 @@ final class MigrationController extends ActionController
                 continue;
             }
 
-            $stored['target_type'] = (string) ($submitted['target_type'] ?? $stored['target_type']);
+            $previousTargetType = (string) ($stored['target_type'] ?? '');
+            $stored['target_type'] = (string) ($submitted['target_type'] ?? $previousTargetType);
             $stored['order'] = (int) ($submitted['order'] ?? $index);
 
             if (\is_array($submitted['fields'] ?? null)) {
@@ -446,12 +462,56 @@ final class MigrationController extends ActionController
                 );
             }
 
+            if ($stored['target_type'] !== $previousTargetType) {
+                $stored = $this->applySelectedTypePattern(
+                    $stored,
+                    $typesByName[$stored['target_type']] ?? [],
+                );
+            }
+
             $merged[] = $stored;
         }
 
         usort($merged, static fn (array $left, array $right): int => $left['order'] <=> $right['order']);
 
         return $merged;
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     * @param array<string, mixed> $targetType
+     *
+     * @return array<string, mixed>
+     */
+    private function applySelectedTypePattern(array $item, array $targetType): array
+    {
+        $patterns = array_merge(
+            \is_array($targetType['reference_patterns'] ?? null)
+                ? $targetType['reference_patterns']
+                : [],
+            \is_array($targetType['catalog_patterns'] ?? null)
+                ? $targetType['catalog_patterns']
+                : [],
+        );
+        $pattern = \is_array($patterns[0] ?? null) ? $patterns[0] : [];
+        $patternFields = array_merge(
+            \is_array($pattern['field_values'] ?? null) ? $pattern['field_values'] : [],
+            \is_array($pattern['option_values'] ?? null) ? $pattern['option_values'] : [],
+        );
+
+        foreach (self::APPEARANCE_FIELDS as $field) {
+            if (\is_scalar($patternFields[$field] ?? null)) {
+                $item['fields'][$field] = (string) $patternFields[$field];
+            }
+        }
+
+        $item['reference_pattern_id'] = '';
+        $item['catalog_pattern_id'] = '';
+        $item['container_columns'] = \is_array($pattern['container_columns'] ?? null)
+            ? array_values(array_map('intval', $pattern['container_columns']))
+            : [];
+
+        return $item;
     }
 
     /**

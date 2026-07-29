@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentFlow\Typo3Translation\Controller;
 
 use ContentFlow\Typo3Translation\Service\ContentFlowClient;
+use ContentFlow\Typo3Translation\Service\HtmlSourceScraper;
 use ContentFlow\Typo3Translation\Service\MigrationContentWriter;
 use ContentFlow\Typo3Translation\Service\MigrationTokenService;
 use ContentFlow\Typo3Translation\Service\SourceConnectorClient;
@@ -21,6 +22,7 @@ final class MigrationController extends ActionController
         private readonly ModuleTemplateFactory $moduleTemplateFactory,
         private readonly ContentFlowClient $client,
         private readonly SourceConnectorClient $sourceConnector,
+        private readonly HtmlSourceScraper $htmlScraper,
         private readonly TargetContentSchema $targetSchema,
         private readonly MigrationContentWriter $writer,
         private readonly MigrationTokenService $tokens,
@@ -67,10 +69,10 @@ final class MigrationController extends ActionController
 
     public function previewAction(
         string $sourceUrl,
-        string $migrationToken,
+        string $sourceMode,
         int $targetPageUid,
-        int $column,
         string $provider,
+        string $migrationToken = '',
         string $model = '',
     ): ResponseInterface {
         try {
@@ -82,11 +84,17 @@ final class MigrationController extends ActionController
                 throw new \RuntimeException('Please select a target TYPO3 page.');
             }
 
-            if ('' === trim($migrationToken)) {
+            if (!\in_array($sourceMode, ['connector', 'html'], true)) {
+                throw new \RuntimeException('Select a valid source method.');
+            }
+
+            if ('connector' === $sourceMode && '' === trim($migrationToken)) {
                 throw new \RuntimeException('Enter the migration token from the source TYPO3 installation.');
             }
 
-            $export = $this->sourceConnector->export($sourceUrl, $migrationToken);
+            $export = 'html' === $sourceMode
+                ? $this->htmlScraper->scrape($sourceUrl)
+                : $this->sourceConnector->export($sourceUrl, $migrationToken);
             $source = \is_array($export['source'] ?? null) ? $export['source'] : [];
             $elements = \is_array($export['elements'] ?? null) ? array_values($export['elements']) : [];
 
@@ -142,7 +150,6 @@ final class MigrationController extends ActionController
                     $sourceIndex = (int) ($item['source_index'] ?? -1);
                     $item['source_record'] = $elements[$sourceIndex] ?? [];
                     $item['enabled'] = true;
-                    $item['column'] = $column;
                     $item['order'] = $itemIndex;
                 }
             }
@@ -154,7 +161,7 @@ final class MigrationController extends ActionController
                 'sourceUrl' => (string) ($source['url'] ?? $sourceUrl),
                 'sourceTitle' => (string) ($source['title'] ?? $sourceUrl),
                 'targetPageUid' => $targetPageUid,
-                'column' => $column,
+                'sourceMode' => $sourceMode,
                 'items' => $items,
                 'targetTypes' => $targetTypes,
                 'migrationId' => (string) ($result['migration_id'] ?? ''),
@@ -215,7 +222,6 @@ final class MigrationController extends ActionController
             );
             $created = $this->writer->write(
                 (int) $preview['targetPageUid'],
-                (int) $preview['column'],
                 $editedItems,
             );
 
@@ -293,7 +299,6 @@ final class MigrationController extends ActionController
             }
 
             $stored['target_type'] = (string) ($submitted['target_type'] ?? $stored['target_type']);
-            $stored['column'] = (int) ($submitted['column'] ?? $stored['column'] ?? 0);
             $stored['order'] = (int) ($submitted['order'] ?? $index);
 
             if (\is_array($submitted['fields'] ?? null)) {

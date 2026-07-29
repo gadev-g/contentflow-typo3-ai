@@ -43,20 +43,29 @@ final readonly class SourceConnectorClient
             $origin .= ':'.$parts['port'];
         }
 
+        $options = [
+            'headers' => [
+                'Authorization' => 'Bearer '.trim($migrationToken),
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ],
+            'body' => json_encode(['source_url' => $sourceUrl], \JSON_THROW_ON_ERROR),
+            'timeout' => 60,
+            'allow_redirects' => false,
+        ];
         $response = $this->requestFactory->request(
             $origin.'/contentflow/migration/export',
             'POST',
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer '.trim($migrationToken),
-                    'Accept' => 'application/json',
-                    'Content-Type' => 'application/json',
-                ],
-                'body' => json_encode(['source_url' => $sourceUrl], \JSON_THROW_ON_ERROR),
-                'timeout' => 60,
-                'allow_redirects' => false,
-            ],
+            $options,
         );
+
+        if (404 === $response->getStatusCode()) {
+            $response = $this->requestFactory->request(
+                $origin.'/?eID=contentflow_migration_export',
+                'POST',
+                $options,
+            );
+        }
         $body = json_decode((string) $response->getBody(), true);
 
         if (!\is_array($body)) {

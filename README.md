@@ -79,6 +79,17 @@ Der Connector ist ausschließlich lesend. Tokens werden nur gehasht gespeichert,
 widerrufen werden und berechtigen nur zum Export. Private Quell-Hosts sind standardmäßig gesperrt
 und müssen für lokale Tests über `allowPrivateSourceHosts` ausdrücklich aktiviert werden.
 
+Für TYPO3 8.7 liegt unter [`LegacySourceConnector`](LegacySourceConnector/README.md) ein separates
+PHP-7-kompatibles Source-Paket. Die moderne Extension kann wegen ihrer TYPO3-12/13- und
+PHP-8-Abhängigkeiten nicht auf TYPO3 8 installiert werden.
+
+Alternativ kann im Migration Assistant **Public HTML page scraper** gewählt werden. Dieser Modus
+liest zuerst die gerenderte öffentliche Seite und erkennt Überschriften, Textblöcke, Listen und
+Bildbeschreibungen. Er benötigt keinen Token, kann jedoch keine TYPO3-internen Collections,
+IRRE-Beziehungen, Container oder FAL-Referenzen rekonstruieren. Eine manuelle Zielspalte wird nicht
+mehr vorgegeben: Alle importierten Hauptelemente landen in der normalen Inhaltsspalte, während das
+Mapping ausschließlich auf den in der Zielinstallation tatsächlich verfügbaren CTypes basiert.
+
 ## ContentFlow-Projekt und API-Key
 
 1. Im ContentFlow Control Panel anmelden.

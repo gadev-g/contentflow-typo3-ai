@@ -48,11 +48,13 @@ final readonly class MigrationContentWriter
                 }
             }
 
-            if ([] === $fields) {
+            $relations = \is_array($item['relations'] ?? null) ? $item['relations'] : [];
+            $sourceRecord = \is_array($item['source_record'] ?? null) ? $item['source_record'] : [];
+            $sourceMedia = \is_array($sourceRecord['media'] ?? null) ? $sourceRecord['media'] : [];
+            if ([] === $fields && [] === $relations && [] === $sourceMedia) {
                 continue;
             }
-
-            $data['tt_content']['NEW_contentflow_migration_'.$index] = [
+            $data['tt_content']['NEW_contentflow_migration_' . $index] = [
                 'pid' => $pageUid,
                 'CType' => $targetType,
                 'colPos' => 0,
@@ -84,19 +86,16 @@ final readonly class MigrationContentWriter
     private function writeRelationsAndMedia(DataHandler $parentHandler, int $pageUid, array $items): void
     {
         foreach ($items as $index => $item) {
-            $parentUid = (int) ($parentHandler->substNEWwithIDs['NEW_contentflow_migration_'.$index] ?? 0);
+            $parentUid = (int) ($parentHandler->substNEWwithIDs['NEW_contentflow_migration_' . $index] ?? 0);
             $sourceRecord = \is_array($item['source_record'] ?? null) ? $item['source_record'] : [];
-
+            $relations = \is_array($item['relations'] ?? null)
+                ? $item['relations']
+                : (\is_array($sourceRecord['relations'] ?? null) ? $sourceRecord['relations'] : []);
             if ($parentUid <= 0) {
                 continue;
             }
 
-            $this->writeInlineRelations(
-                'tt_content',
-                $parentUid,
-                $pageUid,
-                \is_array($sourceRecord['relations'] ?? null) ? $sourceRecord['relations'] : [],
-            );
+            $this->writeInlineRelations('tt_content', $parentUid, $pageUid, $relations,);
             $this->writeMedia(
                 'tt_content',
                 $parentUid,
@@ -142,7 +141,7 @@ final readonly class MigrationContentWriter
                     }
                 }
 
-                $data[$childTable]['NEW_contentflow_relation_'.$parentUid.'_'.$index] = [
+                $data[$childTable]['NEW_contentflow_relation_' . $parentUid . '_' . $index] = [
                     'pid' => $pageUid,
                     $foreignField => $parentUid,
                     ...$safeFields,
@@ -166,7 +165,7 @@ final readonly class MigrationContentWriter
                     continue;
                 }
 
-                $newIdentifier = 'NEW_contentflow_relation_'.$parentUid.'_'.$index;
+                $newIdentifier = 'NEW_contentflow_relation_' . $parentUid . '_' . $index;
                 $childUid = (int) ($handler->substNEWwithIDs[$newIdentifier] ?? 0);
 
                 if ($childUid <= 0) {
@@ -207,7 +206,7 @@ final readonly class MigrationContentWriter
             }
 
             $fileUid = $this->mediaImporter->import($media);
-            $data['sys_file_reference']['NEW_contentflow_media_'.$parentUid.'_'.$index] = [
+            $data['sys_file_reference']['NEW_contentflow_media_' . $parentUid . '_' . $index] = [
                 'pid' => $pageUid,
                 'uid_local' => $fileUid,
                 'uid_foreign' => $parentUid,
@@ -263,7 +262,7 @@ final readonly class MigrationContentWriter
         $document = new \DOMDocument();
         $previous = libxml_use_internal_errors(true);
         $document->loadHTML(
-            '<?xml encoding="utf-8" ?><body>'.$html.'</body>',
+            '<?xml encoding="utf-8" ?><body>' . $html . '</body>',
             \LIBXML_NONET | \LIBXML_NOERROR | \LIBXML_NOWARNING,
         );
         libxml_clear_errors();

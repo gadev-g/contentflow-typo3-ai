@@ -285,10 +285,6 @@ final readonly class MigrationContentWriter
         int $pageUid,
         array $items,
     ): int {
-        if (!isset($GLOBALS['TCA']['tt_content']['columns']['tx_container_parent'])) {
-            return 0;
-        }
-
         $allowedTypes = [];
 
         foreach ($this->schema->availableTypes() as $type) {
@@ -310,6 +306,17 @@ final readonly class MigrationContentWriter
             );
 
             if ([] === $columns || $parentUid <= 0) {
+                continue;
+            }
+            $parentField = (string) ($item['container_parent_field'] ?? '');
+            $columnField = (string) ($item['container_column_field'] ?? '');
+
+            if (
+                !\in_array($parentField, ['tx_container_parent', 'tx_gridelements_container'], true)
+                || !\in_array($columnField, ['colPos', 'tx_gridelements_columns'], true)
+                || !isset($GLOBALS['TCA']['tt_content']['columns'][$parentField])
+                || !isset($GLOBALS['TCA']['tt_content']['columns'][$columnField])
+            ) {
                 continue;
             }
 
@@ -334,6 +341,7 @@ final readonly class MigrationContentWriter
             $sourceColumns = array_values(array_unique($sourceColumns));
             sort($sourceColumns);
             $columnMap = [];
+            $hasSourceColumnLayout = \count($sourceColumns) > 1;
 
             foreach ($sourceColumns as $index => $sourceColumn) {
                 $columnMap[$sourceColumn] = $columns[min($index, \count($columns) - 1)];
@@ -377,17 +385,22 @@ final readonly class MigrationContentWriter
                 }
 
                 $sourceColumn = (int) ($child['column'] ?? 0);
-                $targetColumn = $columnMap[$sourceColumn]
-                    ?? $columns[$index % \count($columns)];
+                $targetColumn = $hasSourceColumnLayout
+                    ? ($columnMap[$sourceColumn] ?? $columns[$index % \count($columns)])
+                    : $columns[$index % \count($columns)];
                 $identifier = 'NEW_contentflow_container_' . $parentUid . '_' . $index;
-                $data['tt_content'][$identifier] = [
+                $childData = [
                     'pid' => $pageUid,
                     'CType' => $targetType,
-                    'colPos' => $targetColumn,
                     'sorting' => ($index + 1) * 256,
-                    'tx_container_parent' => $parentUid,
                     ...$safeFields,
                 ];
+                $childData[$parentField] = $parentUid;
+                $childData[$columnField] = $targetColumn;
+                $childData['colPos'] = 'colPos' === $columnField
+                    ? $targetColumn
+                    : (int) ($item['container_child_col_pos'] ?? 18181);
+                $data['tt_content'][$identifier] = $childData;
                 $preparedChildren[$identifier] = $child;
             }
 

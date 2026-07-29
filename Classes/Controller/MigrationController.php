@@ -516,6 +516,7 @@ final class MigrationController extends ActionController
         $item['container_columns'] = \is_array($pattern['container_columns'] ?? null)
             ? array_values(array_map('intval', $pattern['container_columns']))
             : [];
+        $item = $this->applyContainerPattern($item, $pattern);
 
         return $item;
     }
@@ -678,6 +679,32 @@ final class MigrationController extends ActionController
         }
 
         $item['fields'] = $fields;
+        $item = $this->applyContainerPattern($item, $pattern);
+
+        return $item;
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     * @param array<string, mixed> $pattern
+     *
+     * @return array<string, mixed>
+     */
+    private function applyContainerPattern(array $item, array $pattern): array
+    {
+        $item['container_columns'] = \is_array($pattern['container_columns'] ?? null)
+            ? array_values(array_unique(array_filter(
+                array_map('intval', $pattern['container_columns']),
+                static fn (int $column): bool => $column > 0,
+            )))
+            : [];
+        $item['container_parent_field'] = \is_string($pattern['container_parent_field'] ?? null)
+            ? $pattern['container_parent_field']
+            : '';
+        $item['container_column_field'] = \is_string($pattern['container_column_field'] ?? null)
+            ? $pattern['container_column_field']
+            : '';
+        $item['container_child_col_pos'] = (int) ($pattern['container_child_col_pos'] ?? 0);
 
         return $item;
     }

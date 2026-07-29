@@ -28,6 +28,14 @@
       <div class="cf-card-body">
         <div class="cf-grid cf-migration-source-grid">
           <div class="form-group">
+            <label for="sourceMode">Source method</label>
+            <f:form.select name="sourceMode" id="sourceMode" class="form-select" value="connector">
+              <option value="connector">TYPO3 Source Connector (recommended)</option>
+              <option value="html">Public HTML page scraper</option>
+            </f:form.select>
+            <small>The scraper first inspects the rendered public page; the connector preserves TYPO3 relations and media.</small>
+          </div>
+          <div class="form-group">
             <label for="sourceUrl">Legacy page URL</label>
             <f:form.textfield
               name="sourceUrl"
@@ -59,14 +67,8 @@
               id="migrationToken"
               class="form-control"
               autocomplete="off"
-              required="true"
             />
-            <small>Create this read-only token in Content Migration on the old TYPO3 installation.</small>
-          </div>
-          <div class="form-group">
-            <label for="column">Target column</label>
-            <f:form.select name="column" id="column" class="form-select" options="{0: 'Normal (0)', 1: 'Left (1)', 2: 'Right (2)', 3: 'Border (3)'}" />
-            <small>Select the backend layout column for the imported elements.</small>
+            <small>Required for the Source Connector. Leave empty when using the HTML scraper.</small>
           </div>
         </div>
 

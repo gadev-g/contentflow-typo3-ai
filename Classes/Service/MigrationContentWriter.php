@@ -18,7 +18,7 @@ final readonly class MigrationContentWriter
     /**
      * @param list<array{source_index: int, target_type: string, fields: array<string, string>}> $items
      */
-    public function write(int $pageUid, int $column, array $items): int
+    public function write(int $pageUid, array $items): int
     {
         if ($pageUid <= 0) {
             throw new \RuntimeException('Select a valid target page.');
@@ -55,7 +55,7 @@ final readonly class MigrationContentWriter
             $data['tt_content']['NEW_contentflow_migration_'.$index] = [
                 'pid' => $pageUid,
                 'CType' => $targetType,
-                'colPos' => (int) ($item['column'] ?? $column),
+                'colPos' => 0,
                 'sorting' => $sorting,
                 ...$fields,
             ];

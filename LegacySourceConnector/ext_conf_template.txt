@@ -1,0 +1,2 @@
+# cat=security; type=string; label=SHA-256 migration token hash
+migrationTokenHash =

@@ -84,6 +84,18 @@ final readonly class SourcePageExporter
     /** @return array<string, mixed> */
     private function resolvePage(string $sourceUrl): array
     {
+        $query = [];
+        parse_str((string) parse_url($sourceUrl, \PHP_URL_QUERY), $query);
+        $pageUid = max(0, (int) ($query['id'] ?? 0));
+
+        if ($pageUid > 0) {
+            $page = $this->findVisiblePageByUid($pageUid);
+
+            if (null !== $page) {
+                return $page;
+            }
+        }
+
         $path = rawurldecode((string) parse_url($sourceUrl, \PHP_URL_PATH));
         $path = '/' . trim($path, '/');
         $path = '/' === $path ? '/' : rtrim($path, '/');
@@ -102,11 +114,128 @@ final readonly class SourcePageExporter
             ->executeQuery()
             ->fetchAssociative();
 
-        if (false === $row) {
-            throw new \RuntimeException('No TYPO3 page matches the supplied source URL.');
+        if (false !== $row) {
+            return $row;
         }
 
-        return $row;
+        $legacyPage = $this->resolveLegacySpeakingUrl($path);
+
+        if (null !== $legacyPage) {
+            return $legacyPage;
+        }
+
+        throw new \RuntimeException('No TYPO3 page matches the supplied source URL or speaking URL path.');
+    }
+
+    /** @return array<string, mixed>|null */
+    private function findVisiblePageByUid(int $pageUid): ?array
+    {
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
+        $row = $queryBuilder
+            ->select('*')
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT),
+                ),
+                $queryBuilder->expr()->eq(
+                    'hidden',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
+                ),
+            )
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return false === $row ? null : $row;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function resolveLegacySpeakingUrl(string $path): ?array
+    {
+        $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+
+        if ([] === $segments) {
+            return null;
+        }
+
+        $legacyFields = array_values(array_filter(
+            ['tx_realurl_pathsegment', 'alias'],
+            fn (string $field): bool => $this->hasColumn('pages', $field),
+        ));
+
+        if ([] === $legacyFields) {
+            return null;
+        }
+
+        $lastSegment = (string) end($segments);
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
+        $segmentConstraints = array_map(
+            fn (string $field) => $queryBuilder->expr()->eq(
+                $field,
+                $queryBuilder->createNamedParameter($lastSegment),
+            ),
+            $legacyFields,
+        );
+        $rows = $queryBuilder
+            ->select('*')
+            ->from('pages')
+            ->where(
+                $queryBuilder->expr()->or(...$segmentConstraints),
+                $queryBuilder->expr()->eq(
+                    'hidden',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
+                ),
+            )
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        if (1 === \count($rows)) {
+            return $rows[0];
+        }
+
+        foreach ($rows as $row) {
+            if ($this->legacyPagePathMatches($row, $segments, $legacyFields)) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $page
+     * @param list<string> $segments
+     * @param list<string> $legacyFields
+     */
+    private function legacyPagePathMatches(array $page, array $segments, array $legacyFields): bool
+    {
+        for ($index = \count($segments) - 1; $index >= 0 && (int) ($page['uid'] ?? 0) > 0; --$index) {
+            $expectedSegment = $segments[$index];
+            $matches = false;
+
+            foreach ($legacyFields as $field) {
+                if ($expectedSegment === trim((string) ($page[$field] ?? ''), '/')) {
+                    $matches = true;
+                    break;
+                }
+            }
+
+            if (!$matches) {
+                return false;
+            }
+
+            $parentUid = (int) ($page['pid'] ?? 0);
+
+            if ($parentUid <= 0) {
+                return true;
+            }
+
+            $page = $this->findVisiblePageByUid($parentUid) ?? [];
+        }
+
+        return true;
     }
 
     /** @return array<string, mixed> */

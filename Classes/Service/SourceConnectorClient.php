@@ -10,17 +10,24 @@ use TYPO3\CMS\Core\Http\RequestFactory;
 final readonly class SourceConnectorClient
 {
     private bool $allowPrivateHosts;
+    private string $configuredToken;
 
     public function __construct(
         private RequestFactory $requestFactory,
         ExtensionConfiguration $extensionConfiguration,
     ) {
-        /** @var array{allowPrivateSourceHosts?: bool|int|string} $configuration */
+        /** @var array{allowPrivateSourceHosts?: bool|int|string, migrationSourceToken?: string} $configuration */
         $configuration = $extensionConfiguration->get('contentflow_translation');
         $this->allowPrivateHosts = filter_var(
             $configuration['allowPrivateSourceHosts'] ?? false,
             \FILTER_VALIDATE_BOOL,
         );
+        $this->configuredToken = trim((string) ($configuration['migrationSourceToken'] ?? ''));
+    }
+
+    public function hasConfiguredToken(): bool
+    {
+        return '' !== $this->configuredToken;
     }
 
     /** @return array<string, mixed> */
@@ -43,9 +50,15 @@ final readonly class SourceConnectorClient
             $origin .= ':'.$parts['port'];
         }
 
+        $effectiveToken = '' !== trim($migrationToken) ? trim($migrationToken) : $this->configuredToken;
+
+        if ('' === $effectiveToken) {
+            throw new \RuntimeException('Enter the migration token from the source TYPO3 installation.');
+        }
+
         $options = [
             'headers' => [
-                'Authorization' => 'Bearer '.trim($migrationToken),
+                'Authorization' => 'Bearer '.$effectiveToken,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
             ],

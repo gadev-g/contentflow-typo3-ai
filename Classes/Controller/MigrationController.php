@@ -13,6 +13,7 @@ use ContentFlow\Typo3Translation\Service\TargetContentSchema;
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
 
@@ -26,6 +27,7 @@ final class MigrationController extends ActionController
         private readonly TargetContentSchema $targetSchema,
         private readonly MigrationContentWriter $writer,
         private readonly MigrationTokenService $tokens,
+        private readonly ExtensionConfiguration $extensionConfiguration,
     ) {
     }
 
@@ -62,6 +64,7 @@ final class MigrationController extends ActionController
             'targetPageUid' => $targetPageUid,
             'targetTypes' => $this->targetSchema->availableTypes(),
             'migrationTokens' => $this->tokens->all(),
+            'hasConfiguredMigrationToken' => $this->sourceConnector->hasConfiguredToken(),
         ]);
 
         return $module->renderResponse('Migration/Index');
@@ -74,6 +77,7 @@ final class MigrationController extends ActionController
         string $provider,
         string $migrationToken = '',
         string $model = '',
+        bool $saveMigrationToken = false,
     ): ResponseInterface {
         try {
             if (!$this->client->hasProduct('content_migration')) {
@@ -88,8 +92,16 @@ final class MigrationController extends ActionController
                 throw new \RuntimeException('Select a valid source method.');
             }
 
-            if ('connector' === $sourceMode && '' === trim($migrationToken)) {
+            if (
+                'connector' === $sourceMode
+                && '' === trim($migrationToken)
+                && !$this->sourceConnector->hasConfiguredToken()
+            ) {
                 throw new \RuntimeException('Enter the migration token from the source TYPO3 installation.');
+            }
+
+            if ('connector' === $sourceMode && $saveMigrationToken && '' !== trim($migrationToken)) {
+                $this->setConfiguredSourceToken(trim($migrationToken));
             }
 
             $export = 'html' === $sourceMode
@@ -281,6 +293,17 @@ final class MigrationController extends ActionController
         return $this->redirect('index');
     }
 
+    public function clearSourceTokenAction(): ResponseInterface
+    {
+        $this->setConfiguredSourceToken('');
+        $this->addFlashMessage(
+            'The saved default source migration token was removed.',
+            'Migration token removed',
+        );
+
+        return $this->redirect('index');
+    }
+
     /**
      * @param list<array<string, mixed>> $storedItems
      * @param array<int|string, mixed>   $submittedItems
@@ -319,5 +342,13 @@ final class MigrationController extends ActionController
     private function backendUser(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
+    }
+
+    private function setConfiguredSourceToken(string $token): void
+    {
+        /** @var array<string, mixed> $configuration */
+        $configuration = $this->extensionConfiguration->get('contentflow_translation');
+        $configuration['migrationSourceToken'] = $token;
+        $this->extensionConfiguration->set('contentflow_translation', $configuration);
     }
 }

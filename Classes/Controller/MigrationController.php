@@ -264,6 +264,11 @@ final class MigrationController extends ActionController
 
             unset($item);
 
+            $alternativeTargetTypes = $this->alternativeTargetTypes(
+                $targetTypes,
+                $items,
+                $patternPageUid,
+            );
             $missingReferencePatterns = [];
 
             foreach ($referencePatternLabels as $patternId => $patternLabel) {
@@ -307,6 +312,7 @@ final class MigrationController extends ActionController
                 'outsideReferenceCount' => $outsideReferenceCount,
                 'items' => $items,
                 'targetTypes' => $targetTypes,
+                'alternativeTargetTypes' => $alternativeTargetTypes,
                 'targetTypeSchemaJson' => $targetTypeSchemaJson,
                 'previewToken' => $token,
                 'meta' => $result['meta'] ?? [],
@@ -486,11 +492,11 @@ final class MigrationController extends ActionController
     private function applySelectedTypePattern(array $item, array $targetType): array
     {
         $patterns = array_merge(
-            \is_array($targetType['reference_patterns'] ?? null)
-                ? $targetType['reference_patterns']
-                : [],
             \is_array($targetType['catalog_patterns'] ?? null)
                 ? $targetType['catalog_patterns']
+                : [],
+            \is_array($targetType['reference_patterns'] ?? null)
+                ? $targetType['reference_patterns']
                 : [],
         );
         $pattern = \is_array($patterns[0] ?? null) ? $patterns[0] : [];
@@ -512,6 +518,63 @@ final class MigrationController extends ActionController
             : [];
 
         return $item;
+    }
+
+    /**
+     * A configured pattern page is the editor's curated layout catalogue.
+     * Therefore the preview selector offers its CTypes instead of every CType
+     * installed in the target project. Current AI selections remain available
+     * as a safety net when an older preview contains a non-catalogue type.
+     *
+     * @param list<array<string, mixed>> $targetTypes
+     * @param list<array<string, mixed>> $items
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function alternativeTargetTypes(
+        array $targetTypes,
+        array $items,
+        int $patternPageUid,
+    ): array {
+        if ($patternPageUid <= 0) {
+            return $targetTypes;
+        }
+
+        $selectedTypes = [];
+
+        foreach ($items as $item) {
+            $type = \is_string($item['target_type'] ?? null) ? $item['target_type'] : '';
+
+            if ('' !== $type) {
+                $selectedTypes[$type] = true;
+            }
+        }
+
+        $alternatives = array_values(array_filter(
+            $targetTypes,
+            static function (array $targetType) use ($selectedTypes): bool {
+                $type = \is_string($targetType['type'] ?? null) ? $targetType['type'] : '';
+                $patterns = \is_array($targetType['catalog_patterns'] ?? null)
+                    ? $targetType['catalog_patterns']
+                    : [];
+
+                return [] !== $patterns || isset($selectedTypes[$type]);
+            },
+        ));
+        usort($alternatives, static function (array $left, array $right): int {
+            $leftPatterns = \is_array($left['catalog_patterns'] ?? null)
+                ? $left['catalog_patterns']
+                : [];
+            $rightPatterns = \is_array($right['catalog_patterns'] ?? null)
+                ? $right['catalog_patterns']
+                : [];
+            $leftPosition = (int) ($leftPatterns[0]['position'] ?? \PHP_INT_MAX);
+            $rightPosition = (int) ($rightPatterns[0]['position'] ?? \PHP_INT_MAX);
+
+            return $leftPosition <=> $rightPosition;
+        });
+
+        return [] !== $alternatives ? $alternatives : $targetTypes;
     }
 
     /**

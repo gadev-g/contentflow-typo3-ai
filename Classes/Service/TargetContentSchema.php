@@ -28,6 +28,7 @@ final class TargetContentSchema
      *     type: string,
      *     label: string,
      *     fields: list<string>,
+     *     field_labels: array<string, string>,
      *     field_options: array<string, array<string, string>>,
      *     relations: array<string, array{
      *         table: string,
@@ -59,13 +60,10 @@ final class TargetContentSchema
                 'type' => $type,
                 'label' => $this->itemLabel($item, $type),
                 'fields' => $fields,
+                'field_labels' => $this->fieldLabels($fields),
                 'field_options' => $this->fieldOptions($fields),
                 'relations' => $relations,
             ];
-
-            if (\count($types) >= 50) {
-                break;
-            }
         }
 
         if ([] === $types) {
@@ -73,6 +71,7 @@ final class TargetContentSchema
                 'type' => 'text',
                 'label' => 'Text',
                 'fields' => ['header', 'bodytext'],
+                'field_labels' => ['header' => 'Header', 'bodytext' => 'Text'],
                 'field_options' => [],
                 'relations' => [],
             ]];
@@ -172,7 +171,7 @@ final class TargetContentSchema
             $configuration = $GLOBALS['TCA']['tt_content']['columns'][$field]['config'] ?? [];
             $fieldType = $configuration['type'] ?? null;
 
-            if (!\in_array($fieldType, ['input', 'text', 'select'], true)) {
+            if (!\in_array($fieldType, ['input', 'text', 'select', 'check'], true)) {
                 continue;
             }
 
@@ -194,6 +193,15 @@ final class TargetContentSchema
         foreach ($fields as $field) {
             $configuration = $GLOBALS['TCA']['tt_content']['columns'][$field]['config'] ?? [];
 
+            if ('check' === ($configuration['type'] ?? null)) {
+                $options[$field] = [
+                    '0' => 'No',
+                    '1' => 'Yes',
+                ];
+
+                continue;
+            }
+
             if ('select' !== ($configuration['type'] ?? null)) {
                 continue;
             }
@@ -210,6 +218,25 @@ final class TargetContentSchema
         }
 
         return $options;
+    }
+
+    /**
+     * @param list<string> $fields
+     *
+     * @return array<string, string>
+     */
+    private function fieldLabels(array $fields): array
+    {
+        $labels = [];
+
+        foreach ($fields as $field) {
+            $label = (string) ($GLOBALS['TCA']['tt_content']['columns'][$field]['label'] ?? $field);
+            $labels[$field] = str_starts_with($label, 'LLL:')
+                ? (LocalizationUtility::translate($label) ?: $field)
+                : $label;
+        }
+
+        return $labels;
     }
 
     /** @return list<string> */

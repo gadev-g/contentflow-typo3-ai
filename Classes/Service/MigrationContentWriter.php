@@ -42,16 +42,20 @@ final readonly class MigrationContentWriter
                 continue;
             }
 
+            $sourceRecord = \is_array($item['source_record'] ?? null) ? $item['source_record'] : [];
+            $itemFields = $this->rewriteLinkedDocuments(
+                $item['fields'],
+                \is_array($sourceRecord['linked_files'] ?? null) ? $sourceRecord['linked_files'] : [],
+            );
             $fields = [];
 
-            foreach ($item['fields'] as $field => $value) {
+            foreach ($itemFields as $field => $value) {
                 if (isset($allowedTypes[$targetType][$field]) && '' !== trim($value)) {
                     $fields[$field] = $this->sanitizeField($field, $value);
                 }
             }
 
             $relations = \is_array($item['relations'] ?? null) ? $item['relations'] : [];
-            $sourceRecord = \is_array($item['source_record'] ?? null) ? $item['source_record'] : [];
             $sourceMedia = false === ($item['import_media'] ?? true)
                 ? []
                 : (\is_array($sourceRecord['media'] ?? null) ? $sourceRecord['media'] : []);
@@ -135,7 +139,10 @@ final readonly class MigrationContentWriter
                     continue;
                 }
 
-                $childFields = \is_array($child['fields'] ?? null) ? $child['fields'] : [];
+                $childFields = $this->rewriteLinkedDocuments(
+                    \is_array($child['fields'] ?? null) ? $child['fields'] : [],
+                    \is_array($child['linked_files'] ?? null) ? $child['linked_files'] : [],
+                );
                 $safeFields = [];
 
                 foreach ($childFields as $childField => $value) {
@@ -312,7 +319,7 @@ final readonly class MigrationContentWriter
             if ($element->hasAttribute('href')) {
                 $href = trim($element->getAttribute('href'));
 
-                if (!preg_match('#^(https?://|/|#)#i', $href)) {
+                if (!preg_match('#^(https?://|/|#|t3://file\?uid=\d+$)#i', $href)) {
                     $element->removeAttribute('href');
                 } else {
                     $element->setAttribute('rel', 'noopener noreferrer');
@@ -328,6 +335,54 @@ final readonly class MigrationContentWriter
         }
 
         return trim($result);
+    }
+
+    /**
+     * @param array<string, mixed>       $fields
+     * @param list<array<string, mixed>> $linkedFiles
+     *
+     * @return array<string, mixed>
+     */
+    private function rewriteLinkedDocuments(array $fields, array $linkedFiles): array
+    {
+        foreach ($linkedFiles as $linkedFile) {
+            $originalHref = trim((string) ($linkedFile['original_href'] ?? ''));
+
+            if ('' === $originalHref) {
+                continue;
+            }
+
+            $fileUid = $this->mediaImporter->import($linkedFile);
+            $targetHref = 't3://file?uid=' . $fileUid;
+
+            foreach ($fields as $field => $value) {
+                if (!\is_string($value) || '' === $value) {
+                    continue;
+                }
+
+                $fields[$field] = str_replace(
+                    [
+                        'href="' . $originalHref . '"',
+                        "href='" . $originalHref . "'",
+                        '<link ' . $originalHref . '>',
+                    ],
+                    [
+                        'href="' . $targetHref . '"',
+                        "href='" . $targetHref . "'",
+                        '<a href="' . $targetHref . '">',
+                    ],
+                    $value,
+                );
+                $fields[$field] = preg_replace(
+                    '#<link\s+' . preg_quote($originalHref, '#') . '(?:\s+[^>]*)?>#i',
+                    '<a href="' . $targetHref . '">',
+                    (string) $fields[$field],
+                ) ?? $fields[$field];
+                $fields[$field] = str_replace('</link>', '</a>', (string) $fields[$field]);
+            }
+        }
+
+        return $fields;
     }
 
     private function nextContentSorting(int $pageUid): int

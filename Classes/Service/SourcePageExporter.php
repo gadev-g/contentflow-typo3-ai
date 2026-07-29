@@ -132,15 +132,17 @@ final readonly class SourcePageExporter
             return $resolved;
         }
 
+        $editableFields = $this->editableFields($table, $row);
         $record = [
             'source_table' => $table,
             'source_uid' => (int) ($row['uid'] ?? 0),
             'type' => 'tt_content' === $table ? (string) ($row['CType'] ?? '') : $table,
             'column' => (int) ($row['colPos'] ?? 0),
             'sorting' => (int) ($row['sorting'] ?? 0),
-            'fields' => $this->editableFields($table, $row),
+            'fields' => $editableFields,
             'relations' => [],
             'media' => [],
+            'linked_files' => $this->linkedDocuments($editableFields, $baseUrl),
         ];
 
         if ($depth >= 5) {
@@ -316,6 +318,79 @@ final readonly class SourcePageExporter
         }
 
         return $media;
+    }
+
+    /** @param array<string, string> $fields
+     *  @return list<array<string, mixed>>
+     */
+    private function linkedDocuments(array $fields, string $baseUrl): array
+    {
+        $documents = [];
+        $seen = [];
+
+        foreach ($fields as $value) {
+            preg_match_all('/href\s*=\s*(["\'])(.*?)\1/i', $value, $hrefMatches);
+            preg_match_all('/<link\s+([^\s>]+)[^>]*>/i', $value, $legacyMatches);
+
+            foreach (array_merge($hrefMatches[2] ?? [], $legacyMatches[1] ?? []) as $href) {
+                $originalHref = html_entity_decode(trim((string) $href), \ENT_QUOTES | \ENT_HTML5);
+                $file = $this->resolveLinkedFile($originalHref);
+
+                if (
+                    null === $file
+                    || isset($seen[$file->getUid()])
+                    || 'application/pdf' !== strtolower($file->getMimeType())
+                    || $file->getSize() <= 0
+                    || $file->getSize() > 20_000_000
+                ) {
+                    continue;
+                }
+
+                $expires = time() + 3600;
+                $signature = hash_hmac('sha256', $file->getUid() . ':' . $expires, $this->signingSecret);
+                $documents[] = [
+                    'source_file_uid' => $file->getUid(),
+                    'original_href' => $originalHref,
+                    'name' => $file->getName(),
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                    'sha256' => hash('sha256', $file->getContents()),
+                    'download_url' => rtrim($baseUrl, '/') . '/contentflow/migration/media/'
+                        . $file->getUid() . '?expires=' . $expires . '&signature=' . $signature,
+                ];
+                $seen[$file->getUid()] = true;
+            }
+        }
+
+        return $documents;
+    }
+
+    private function resolveLinkedFile(string $href): ?\TYPO3\CMS\Core\Resource\File
+    {
+        try {
+            if (preg_match('/^file:(\d+)$/i', $href, $match)) {
+                return GeneralUtility::makeInstance(\TYPO3\CMS\Core\Resource\ResourceFactory::class)
+                    ->getFileObject((int) $match[1]);
+            }
+
+            if (preg_match('/^t3:\/\/file\?[^#]*\buid=(\d+)/i', $href, $match)) {
+                return GeneralUtility::makeInstance(\TYPO3\CMS\Core\Resource\ResourceFactory::class)
+                    ->getFileObject((int) $match[1]);
+            }
+
+            $path = rawurldecode((string) parse_url($href, \PHP_URL_PATH));
+
+            if (!preg_match('#(?:^|/)fileadmin/(.+)$#i', $path, $match)) {
+                return null;
+            }
+
+            $identifier = '/' . ltrim($match[1], '/');
+
+            return GeneralUtility::makeInstance(\TYPO3\CMS\Core\Resource\ResourceFactory::class)
+                ->getFileObjectFromCombinedIdentifier('1:' . $identifier);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /** @return array<string, string> */

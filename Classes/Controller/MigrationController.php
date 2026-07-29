@@ -623,6 +623,7 @@ final class MigrationController extends ActionController
     {
         $combined = [];
         $media = [];
+        $linkedFiles = [];
         $relations = [];
 
         foreach ($sourceIndices as $sourceIndex) {
@@ -645,6 +646,12 @@ final class MigrationController extends ActionController
                 }
             }
 
+            foreach (\is_array($record['linked_files'] ?? null) ? $record['linked_files'] : [] as $linkedFile) {
+                if (\is_array($linkedFile)) {
+                    $linkedFiles[] = $linkedFile;
+                }
+            }
+
             foreach (\is_array($record['relations'] ?? null) ? $record['relations'] : [] as $field => $children) {
                 if (\is_string($field) && \is_array($children)) {
                     $relations[$field] = array_merge($relations[$field] ?? [], $children);
@@ -653,6 +660,7 @@ final class MigrationController extends ActionController
         }
 
         $combined['media'] = $media;
+        $combined['linked_files'] = $linkedFiles;
         $combined['relations'] = $relations;
 
         return $combined;

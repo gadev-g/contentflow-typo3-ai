@@ -296,4 +296,13 @@
 .cf-migration-fields label > span { font-weight: 700; }
 .cf-migration-fields label > span small { display: block; margin-top: 2px; color: #7a899c; font-size: 10px; font-weight: 500; }
 .cf-migration-media { margin: 0 16px 16px; padding: 11px 13px; border-radius: 10px; color: #086a4b; background: #e9f8f2; }
+.cf-migration-options { border-top: 1px solid #e7edf5; }
+.cf-migration-options > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 16px; color: #25344b; cursor: pointer; list-style: none; }
+.cf-migration-options > summary::-webkit-details-marker { display: none; }
+.cf-migration-options > summary span, .cf-migration-options > summary b, .cf-migration-options > summary small { display: block; }
+.cf-migration-options > summary small { margin-top: 2px; color: #78889d; font-size: 10px; font-weight: 500; }
+.cf-migration-options > summary i { width: 9px; height: 9px; border-right: 2px solid #58708d; border-bottom: 2px solid #58708d; transform: rotate(45deg); transition: transform .18s ease; }
+.cf-migration-options[open] > summary { background: #f8fbff; }
+.cf-migration-options[open] > summary i { transform: rotate(225deg); }
+.cf-migration-options-body { border-top: 1px solid #e7edf5; }
 @media (max-width: 900px) { .cf-token-create, .cf-migration-item-settings { grid-template-columns: 1fr; } .cf-migration-token-default { align-items: flex-start; flex-direction: column; } }

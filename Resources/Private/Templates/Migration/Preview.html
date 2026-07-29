@@ -44,50 +44,61 @@
                     Import
                   </label>
                 </header>
-                <div class="cf-grid cf-migration-item-settings">
-                  <div class="form-group">
-                    <label>Target content type</label>
-                    <f:form.select
-                      name="items[{iteration.index}][target_type]"
-                      value="{item.target_type}"
-                      options="{targetTypes}"
-                      optionValueField="type"
-                      optionLabelField="label"
-                      class="form-select cf-migration-target-type"
-                    />
+                <details class="cf-migration-options">
+                  <summary>
+                    <span>
+                      <b>Element settings</b>
+                      <small>Content type, order, layout and appearance</small>
+                    </span>
+                    <i aria-hidden="true"></i>
+                  </summary>
+                  <div class="cf-migration-options-body">
+                    <div class="cf-grid cf-migration-item-settings">
+                      <div class="form-group">
+                        <label>Target content type</label>
+                        <f:form.select
+                          name="items[{iteration.index}][target_type]"
+                          value="{item.target_type}"
+                          options="{targetTypes}"
+                          optionValueField="type"
+                          optionLabelField="label"
+                          class="form-select cf-migration-target-type"
+                        />
+                      </div>
+                      <div class="form-group">
+                        <label>Order</label>
+                        <f:form.textfield name="items[{iteration.index}][order]" value="{iteration.index}" type="number" class="form-control" />
+                      </div>
+                    </div>
+                    <div class="cf-migration-fields" data-contentflow-migration-fields>
+                      <f:for each="{item.field_definitions}" as="definition">
+                        <label>
+                          <span>{definition.label}<small>{definition.name}</small></span>
+                          <f:if condition="{definition.is_select}">
+                            <f:then>
+                              <f:form.select
+                                name="items[{iteration.index}][fields][{definition.name}]"
+                                value="{definition.value}"
+                                options="{definition.options}"
+                                prependOptionLabel="Use TYPO3 default"
+                                prependOptionValue=""
+                                class="form-select"
+                              />
+                            </f:then>
+                            <f:else>
+                              <f:form.textarea
+                                name="items[{iteration.index}][fields][{definition.name}]"
+                                value="{definition.value}"
+                                rows="3"
+                                class="form-control"
+                              />
+                            </f:else>
+                          </f:if>
+                        </label>
+                      </f:for>
+                    </div>
                   </div>
-                  <div class="form-group">
-                    <label>Order</label>
-                    <f:form.textfield name="items[{iteration.index}][order]" value="{iteration.index}" type="number" class="form-control" />
-                  </div>
-                </div>
-                <div class="cf-migration-fields" data-contentflow-migration-fields>
-                  <f:for each="{item.field_definitions}" as="definition">
-                    <label>
-                      <span>{definition.label}<small>{definition.name}</small></span>
-                      <f:if condition="{definition.is_select}">
-                        <f:then>
-                          <f:form.select
-                            name="items[{iteration.index}][fields][{definition.name}]"
-                            value="{definition.value}"
-                            options="{definition.options}"
-                            prependOptionLabel="Use TYPO3 default"
-                            prependOptionValue=""
-                            class="form-select"
-                          />
-                        </f:then>
-                        <f:else>
-                          <f:form.textarea
-                            name="items[{iteration.index}][fields][{definition.name}]"
-                            value="{definition.value}"
-                            rows="3"
-                            class="form-control"
-                          />
-                        </f:else>
-                      </f:if>
-                    </label>
-                  </f:for>
-                </div>
+                </details>
                 <f:if condition="{item.source_record.media}">
                   <div class="cf-migration-media">
                     <b>{item.source_record.media -> f:count()}</b> media file(s) will be imported into FAL.

@@ -61,6 +61,18 @@
             <small>The new content elements are added to this page after approval.</small>
           </div>
           <div class="form-group">
+            <label for="referencePageUid">Reference page UID <span>optional</span></label>
+            <f:form.textfield
+              name="referencePageUid"
+              id="referencePageUid"
+              class="form-control"
+              type="number"
+              min="0"
+              placeholder="e.g. 42"
+            />
+            <small>ContentFlow prioritizes the real CTypes, variants and layout settings used on this target page.</small>
+          </div>
+          <div class="form-group">
             <label for="migrationToken">Source migration token</label>
             <f:form.password
               name="migrationToken"

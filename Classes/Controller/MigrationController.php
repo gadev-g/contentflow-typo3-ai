@@ -8,6 +8,7 @@ use ContentFlow\Typo3Translation\Service\ContentFlowClient;
 use ContentFlow\Typo3Translation\Service\HtmlSourceScraper;
 use ContentFlow\Typo3Translation\Service\MigrationContentWriter;
 use ContentFlow\Typo3Translation\Service\MigrationTokenService;
+use ContentFlow\Typo3Translation\Service\ReferencePagePatternCatalog;
 use ContentFlow\Typo3Translation\Service\SourceConnectorClient;
 use ContentFlow\Typo3Translation\Service\TargetContentSchema;
 use Psr\Http\Message\ResponseInterface;
@@ -27,6 +28,7 @@ final class MigrationController extends ActionController
         private readonly TargetContentSchema $targetSchema,
         private readonly MigrationContentWriter $writer,
         private readonly MigrationTokenService $tokens,
+        private readonly ReferencePagePatternCatalog $referencePatterns,
         private readonly ExtensionConfiguration $extensionConfiguration,
     ) {
     }
@@ -77,6 +79,7 @@ final class MigrationController extends ActionController
         string $migrationToken = '',
         string $model = '',
         bool $saveMigrationToken = false,
+        int $referencePageUid = 0,
     ): ResponseInterface {
         try {
             if (!$this->client->hasProduct('content_migration')) {
@@ -136,6 +139,7 @@ final class MigrationController extends ActionController
             }
 
             $targetTypes = $this->targetSchema->availableTypes($targetPageUid, $this->request);
+            $targetTypes = $this->referencePatterns->enrich($targetTypes, $referencePageUid);
             $result = $this->client->planMigration(
                 (string) ($source['url'] ?? $sourceUrl),
                 '' !== $sourceTitle ? $sourceTitle : $sourceUrl,
@@ -152,18 +156,41 @@ final class MigrationController extends ActionController
 
             $typeLabels = [];
             $typesByName = [];
+            $referencePatternLabels = [];
 
             foreach ($targetTypes as $targetType) {
                 $typeLabels[$targetType['type']] = $targetType['label'];
                 $typesByName[$targetType['type']] = $targetType;
+
+                foreach (
+                    \is_array($targetType['reference_patterns'] ?? null)
+                        ? $targetType['reference_patterns']
+                        : [] as $referencePattern
+                ) {
+                    if (
+                        \is_array($referencePattern)
+                        && \is_string($referencePattern['id'] ?? null)
+                    ) {
+                        $referencePatternLabels[$referencePattern['id']] = (string) (
+                            $referencePattern['label']
+                            ?? $referencePattern['id']
+                        );
+                    }
+                }
             }
 
             foreach ($items as $itemIndex => &$item) {
                 if (\is_array($item)) {
                     $item['target_label'] = $typeLabels[(string) ($item['target_type'] ?? '')]
                         ?? (string) ($item['target_type'] ?? '');
+                    $item['reference_pattern_label'] = $referencePatternLabels[
+                        (string) ($item['reference_pattern_id'] ?? '')
+                    ] ?? '';
                     $sourceIndex = (int) ($item['source_index'] ?? -1);
-                    $item['source_record'] = $elements[$sourceIndex] ?? [];
+                    $sourceIndices = \is_array($item['source_indices'] ?? null)
+                        ? $item['source_indices']
+                        : [$sourceIndex];
+                    $item['source_record'] = $this->combinedSourceRecord($elements, $sourceIndices);
                     $item['relations'] = \is_array($item['relations'] ?? null) ? $item['relations'] : [];
                     $item['enabled'] = true;
                     $item['order'] = $itemIndex;
@@ -190,6 +217,7 @@ final class MigrationController extends ActionController
                 'sourceUrl' => (string) ($source['url'] ?? $sourceUrl),
                 'sourceTitle' => '' !== $sourceTitle ? $sourceTitle : $sourceUrl,
                 'targetPageUid' => $targetPageUid,
+                'referencePageUid' => $referencePageUid,
                 'sourceMode' => $sourceMode,
                 'items' => $items,
                 'targetTypes' => $targetTypes,
@@ -203,6 +231,7 @@ final class MigrationController extends ActionController
                 'sourceTitle' => '' !== $sourceTitle ? $sourceTitle : $sourceUrl,
                 'sourceBlockCount' => \count($blocks),
                 'targetPageUid' => $targetPageUid,
+                'referencePageUid' => $referencePageUid,
                 'items' => $items,
                 'targetTypes' => $targetTypes,
                 'targetTypeSchemaJson' => $targetTypeSchemaJson,
@@ -459,6 +488,51 @@ final class MigrationController extends ActionController
         }
 
         return false;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $elements
+     * @param list<mixed>                $sourceIndices
+     *
+     * @return array<string, mixed>
+     */
+    private function combinedSourceRecord(array $elements, array $sourceIndices): array
+    {
+        $combined = [];
+        $media = [];
+        $relations = [];
+
+        foreach ($sourceIndices as $sourceIndex) {
+            $index = filter_var($sourceIndex, \FILTER_VALIDATE_INT);
+            $record = false !== $index && \is_array($elements[$index] ?? null)
+                ? $elements[$index]
+                : [];
+
+            if ([] === $record) {
+                continue;
+            }
+
+            if ([] === $combined) {
+                $combined = $record;
+            }
+
+            foreach (\is_array($record['media'] ?? null) ? $record['media'] : [] as $mediaItem) {
+                if (\is_array($mediaItem)) {
+                    $media[] = $mediaItem;
+                }
+            }
+
+            foreach (\is_array($record['relations'] ?? null) ? $record['relations'] : [] as $field => $children) {
+                if (\is_string($field) && \is_array($children)) {
+                    $relations[$field] = array_merge($relations[$field] ?? [], $children);
+                }
+            }
+        }
+
+        $combined['media'] = $media;
+        $combined['relations'] = $relations;
+
+        return $combined;
     }
 
     private function normalizeEditorialText(string $value): string

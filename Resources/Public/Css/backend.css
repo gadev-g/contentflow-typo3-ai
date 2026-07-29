@@ -290,6 +290,7 @@
 .cf-migration-edit-form { display: block; width: 100%; }
 .cf-migration-edit-form > .cf-primary { display: flex; margin: 20px 0 0 auto; }
 .cf-migration-enabled { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.cf-migration-pattern { color: #1769e0; background: #edf5ff; border-radius: 999px; padding: 5px 9px; font-size: 11px; font-weight: 700; }
 .cf-migration-item-settings { grid-template-columns: minmax(260px, 2fr) 1fr 1fr; padding: 16px; }
 .cf-migration-fields { display: grid; gap: 14px; padding: 0 16px 16px; }
 .cf-migration-quick-fields { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); padding: 16px; border-top: 1px solid #e7edf5; background: #fbfdff; }

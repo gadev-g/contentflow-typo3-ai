@@ -1,0 +1,154 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ContentFlow\Typo3Translation\Service;
+
+use TYPO3\CMS\Core\Database\Connection;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+
+final readonly class ReferencePagePatternCatalog
+{
+    public function __construct(private ConnectionPool $connectionPool)
+    {
+    }
+
+    /**
+     * @param list<array<string, mixed>> $targetTypes
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function enrich(array $targetTypes, int $referencePageUid): array
+    {
+        if ($referencePageUid <= 0) {
+            return $targetTypes;
+        }
+
+        $typesByName = [];
+
+        foreach ($targetTypes as $index => $targetType) {
+            $type = \is_string($targetType['type'] ?? null) ? $targetType['type'] : '';
+
+            if ('' === $type) {
+                continue;
+            }
+
+            $targetTypes[$index]['reference_patterns'] = [];
+            $typesByName[$type] = $index;
+        }
+
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('tt_content');
+        $rows = $queryBuilder
+            ->select('*')
+            ->from('tt_content')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'pid',
+                    $queryBuilder->createNamedParameter($referencePageUid, Connection::PARAM_INT),
+                ),
+                $queryBuilder->expr()->eq(
+                    'sys_language_uid',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
+                ),
+            )
+            ->orderBy('colPos')
+            ->addOrderBy('sorting')
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        foreach ($rows as $position => $row) {
+            $type = (string) ($row['CType'] ?? '');
+            $targetIndex = $typesByName[$type] ?? null;
+
+            if (null === $targetIndex) {
+                continue;
+            }
+
+            if (\count($targetTypes[$targetIndex]['reference_patterns']) >= 25) {
+                continue;
+            }
+
+            $allowedFields = \is_array($targetTypes[$targetIndex]['fields'] ?? null)
+                ? $targetTypes[$targetIndex]['fields']
+                : [];
+            $fieldValues = [];
+
+            foreach ($allowedFields as $field) {
+                if (
+                    !\is_string($field)
+                    || !\is_scalar($row[$field] ?? null)
+                    || '' === trim((string) $row[$field])
+                ) {
+                    continue;
+                }
+
+                $fieldValues[$field] = mb_substr((string) $row[$field], 0, 2000);
+            }
+
+            $targetTypes[$targetIndex]['reference_patterns'][] = [
+                'id' => \sprintf('pages:%d:tt_content:%d', $referencePageUid, (int) $row['uid']),
+                'label' => $this->patternLabel($targetTypes[$targetIndex], $row),
+                'reference_page_uid' => $referencePageUid,
+                'reference_record_uid' => (int) $row['uid'],
+                'position' => $position,
+                'column' => (int) ($row['colPos'] ?? 0),
+                'field_values' => $fieldValues,
+                'relation_counts' => $this->relationCounts($targetTypes[$targetIndex], (int) $row['uid']),
+            ];
+        }
+
+        return $targetTypes;
+    }
+
+    /** @param array<string, mixed> $targetType */
+    private function patternLabel(array $targetType, array $row): string
+    {
+        $typeLabel = \is_string($targetType['label'] ?? null)
+            ? $targetType['label']
+            : (string) ($row['CType'] ?? 'Content element');
+        $header = trim((string) ($row['header'] ?? ''));
+
+        return '' === $header ? $typeLabel : $typeLabel . ': ' . mb_substr(strip_tags($header), 0, 100);
+    }
+
+    /**
+     * @param array<string, mixed> $targetType
+     *
+     * @return array<string, int>
+     */
+    private function relationCounts(array $targetType, int $parentUid): array
+    {
+        $counts = [];
+
+        foreach (\is_array($targetType['relations'] ?? null) ? $targetType['relations'] : [] as $field => $relation) {
+            if (!\is_string($field) || !\is_array($relation)) {
+                continue;
+            }
+
+            $table = \is_string($relation['table'] ?? null) ? $relation['table'] : '';
+            $foreignField = (string) (
+                $GLOBALS['TCA']['tt_content']['columns'][$field]['config']['foreign_field']
+                ?? ''
+            );
+
+            if ('' === $table || '' === $foreignField) {
+                continue;
+            }
+
+            $queryBuilder = $this->connectionPool->getQueryBuilderForTable($table);
+            $counts[$field] = (int) $queryBuilder
+                ->count('uid')
+                ->from($table)
+                ->where(
+                    $queryBuilder->expr()->eq(
+                        $foreignField,
+                        $queryBuilder->createNamedParameter($parentUid, Connection::PARAM_INT),
+                    ),
+                )
+                ->executeQuery()
+                ->fetchOne();
+        }
+
+        return $counts;
+    }
+}

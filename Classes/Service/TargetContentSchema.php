@@ -231,7 +231,7 @@ final readonly class TargetContentSchema
             foreach (\is_array($configuration['items'] ?? null) ? $configuration['items'] : [] as $item) {
                 $value = $this->itemValue($item);
 
-                if ('' === $value || '--div--' === $value) {
+                if ('--div--' === $value) {
                     continue;
                 }
 

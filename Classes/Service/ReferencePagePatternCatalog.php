@@ -71,18 +71,32 @@ final readonly class ReferencePagePatternCatalog
             $allowedFields = \is_array($targetTypes[$targetIndex]['fields'] ?? null)
                 ? $targetTypes[$targetIndex]['fields']
                 : [];
+            $fieldOptions = \is_array($targetTypes[$targetIndex]['field_options'] ?? null)
+                ? $targetTypes[$targetIndex]['field_options']
+                : [];
             $fieldValues = [];
+            $optionValues = [];
 
             foreach ($allowedFields as $field) {
                 if (
                     !\is_string($field)
                     || !\is_scalar($row[$field] ?? null)
-                    || '' === trim((string) $row[$field])
                 ) {
                     continue;
                 }
 
-                $fieldValues[$field] = mb_substr((string) $row[$field], 0, 2000);
+                $value = (string) $row[$field];
+
+                if ('' !== trim($value)) {
+                    $fieldValues[$field] = mb_substr($value, 0, 2000);
+                }
+
+                if (
+                    \is_array($fieldOptions[$field] ?? null)
+                    && \array_key_exists($value, $fieldOptions[$field])
+                ) {
+                    $optionValues[$field] = $value;
+                }
             }
 
             $targetTypes[$targetIndex]['reference_patterns'][] = [
@@ -93,6 +107,7 @@ final readonly class ReferencePagePatternCatalog
                 'position' => $position,
                 'column' => (int) ($row['colPos'] ?? 0),
                 'field_values' => $fieldValues,
+                'option_values' => $optionValues,
                 'relation_counts' => $this->relationCounts($targetTypes[$targetIndex], (int) $row['uid']),
             ];
         }

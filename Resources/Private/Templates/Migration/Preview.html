@@ -36,6 +36,20 @@
               <span><b>#{referencePageUid}</b> reference page</span>
             </f:if>
           </div>
+          <f:if condition="{referencePageUid}">
+            <f:if condition="{outsideReferenceCount}">
+              <div class="cf-migration-blueprint-warning">
+                <b>{outsideReferenceCount} element(s) do not exist in the reference layout.</b>
+                <span>They are disabled so the imported page keeps the exact reference structure. Change their target CType manually if needed.</span>
+              </div>
+            </f:if>
+            <f:if condition="{missingReferencePatterns}">
+              <div class="cf-migration-blueprint-warning">
+                <b>Reference slots without matching source content</b>
+                <span><f:for each="{missingReferencePatterns}" as="pattern" iteration="patternIteration">{pattern}<f:if condition="{patternIteration.isLast}"><f:else>, </f:else></f:if></f:for></span>
+              </div>
+            </f:if>
+          </f:if>
           <div class="cf-migration-items">
             <f:for each="{items}" as="item" iteration="iteration">
               <article data-contentflow-migration-item="{iteration.index}">
@@ -46,7 +60,7 @@
                     <span class="cf-migration-pattern">Reference: {item.reference_pattern_label}</span>
                   </f:if>
                   <label class="cf-migration-enabled">
-                    <f:form.checkbox name="items[{iteration.index}][enabled]" value="1" checked="true" />
+                    <f:form.checkbox name="items[{iteration.index}][enabled]" value="1" checked="{item.enabled}" />
                     Import
                   </label>
                 </header>

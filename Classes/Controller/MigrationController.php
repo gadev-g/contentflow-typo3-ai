@@ -62,7 +62,7 @@ final class MigrationController extends ActionController
             'providers' => $providers,
             'defaultProvider' => $providers[0]['id'] ?? '',
             'targetPageUid' => $targetPageUid,
-            'targetTypes' => $this->targetSchema->availableTypes(),
+            'targetTypes' => $this->targetSchema->availableTypes($targetPageUid, $this->request),
             'migrationTokens' => $this->tokens->all(),
             'hasConfiguredMigrationToken' => $this->sourceConnector->hasConfiguredToken(),
         ]);
@@ -133,7 +133,7 @@ final class MigrationController extends ActionController
                 ];
             }
 
-            $targetTypes = $this->targetSchema->availableTypes();
+            $targetTypes = $this->targetSchema->availableTypes($targetPageUid, $this->request);
             $result = $this->client->planMigration(
                 (string) ($source['url'] ?? $sourceUrl),
                 (string) ($source['title'] ?? $sourceUrl),

@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace ContentFlow\Typo3Translation\Service;
 
+use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Backend\Form\FormDataCompiler;
+use TYPO3\CMS\Backend\Form\FormDataGroup\TcaDatabaseRecord;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
 
-final class TargetContentSchema
+final readonly class TargetContentSchema
 {
     private const EXCLUDED_FIELDS = [
         'uid',
@@ -23,6 +27,11 @@ final class TargetContentSchema
         'l10n_source',
     ];
 
+    public function __construct(
+        private FormDataCompiler $formDataCompiler,
+    ) {
+    }
+
     /**
      * @return list<array{
      *     type: string,
@@ -37,8 +46,10 @@ final class TargetContentSchema
      *     }>
      * }>
      */
-    public function availableTypes(): array
-    {
+    public function availableTypes(
+        int $targetPageUid = 0,
+        ?ServerRequestInterface $request = null,
+    ): array {
         $items = $GLOBALS['TCA']['tt_content']['columns']['CType']['config']['items'] ?? [];
         $types = [];
 
@@ -49,8 +60,9 @@ final class TargetContentSchema
                 continue;
             }
 
-            $fields = $this->editableFields($type);
-            $relations = $this->editableRelations($type);
+            $processedColumns = $this->processedColumns($type, $targetPageUid, $request);
+            $fields = $this->editableFields($type, $processedColumns);
+            $relations = $this->editableRelations($type, $processedColumns);
 
             if ([] === $fields && [] === $relations) {
                 continue;
@@ -60,8 +72,8 @@ final class TargetContentSchema
                 'type' => $type,
                 'label' => $this->itemLabel($item, $type),
                 'fields' => $fields,
-                'field_labels' => $this->fieldLabels($fields),
-                'field_options' => $this->fieldOptions($fields),
+                'field_labels' => $this->fieldLabels($fields, $processedColumns),
+                'field_options' => $this->fieldOptions($fields, $processedColumns),
                 'relations' => $relations,
             ];
         }
@@ -93,14 +105,16 @@ final class TargetContentSchema
      *     media_fields: list<string>
      * }>
      */
-    private function editableRelations(string $type): array
+    private function editableRelations(string $type, array $processedColumns): array
     {
         $showItem = (string) ($GLOBALS['TCA']['tt_content']['types'][$type]['showitem'] ?? '');
         $relations = [];
 
         foreach ($this->expandedFieldDefinitions($showItem) as $fieldDefinition) {
             $field = trim(explode(';', $fieldDefinition)[0]);
-            $configuration = $GLOBALS['TCA']['tt_content']['columns'][$field]['config'] ?? [];
+            $configuration = $processedColumns[$field]['config']
+                ?? $GLOBALS['TCA']['tt_content']['columns'][$field]['config']
+                ?? [];
             $childTable = (string) ($configuration['foreign_table'] ?? '');
             $foreignField = (string) ($configuration['foreign_field'] ?? '');
 
@@ -152,7 +166,7 @@ final class TargetContentSchema
     }
 
     /** @return list<string> */
-    private function editableFields(string $type): array
+    private function editableFields(string $type, array $processedColumns): array
     {
         $showItem = (string) ($GLOBALS['TCA']['tt_content']['types'][$type]['showitem'] ?? '');
         $fields = [];
@@ -168,7 +182,9 @@ final class TargetContentSchema
                 continue;
             }
 
-            $configuration = $GLOBALS['TCA']['tt_content']['columns'][$field]['config'] ?? [];
+            $configuration = $processedColumns[$field]['config']
+                ?? $GLOBALS['TCA']['tt_content']['columns'][$field]['config']
+                ?? [];
             $fieldType = $configuration['type'] ?? null;
 
             if (!\in_array($fieldType, ['input', 'text', 'select', 'check'], true)) {
@@ -186,12 +202,14 @@ final class TargetContentSchema
      *
      * @return array<string, array<string, string>>
      */
-    private function fieldOptions(array $fields): array
+    private function fieldOptions(array $fields, array $processedColumns): array
     {
         $options = [];
 
         foreach ($fields as $field) {
-            $configuration = $GLOBALS['TCA']['tt_content']['columns'][$field]['config'] ?? [];
+            $configuration = $processedColumns[$field]['config']
+                ?? $GLOBALS['TCA']['tt_content']['columns'][$field]['config']
+                ?? [];
 
             if ('check' === ($configuration['type'] ?? null)) {
                 $options[$field] = [
@@ -225,18 +243,62 @@ final class TargetContentSchema
      *
      * @return array<string, string>
      */
-    private function fieldLabels(array $fields): array
+    private function fieldLabels(array $fields, array $processedColumns): array
     {
         $labels = [];
 
         foreach ($fields as $field) {
-            $label = (string) ($GLOBALS['TCA']['tt_content']['columns'][$field]['label'] ?? $field);
+            $label = (string) (
+                $processedColumns[$field]['label']
+                ?? $GLOBALS['TCA']['tt_content']['columns'][$field]['label']
+                ?? $field
+            );
             $labels[$field] = str_starts_with($label, 'LLL:')
                 ? (LocalizationUtility::translate($label) ?: $field)
                 : $label;
         }
 
         return $labels;
+    }
+
+    /**
+     * Resolve the target instance's fully processed TCA, including Page TSconfig
+     * additions, removals and labels for select items.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private function processedColumns(
+        string $type,
+        int $targetPageUid,
+        ?ServerRequestInterface $request,
+    ): array {
+        if ($targetPageUid <= 0 || null === $request) {
+            return [];
+        }
+
+        try {
+            $formData = $this->formDataCompiler->compile(
+                [
+                    'request' => $request,
+                    'tableName' => 'tt_content',
+                    'vanillaUid' => $targetPageUid,
+                    'command' => 'new',
+                    'defaultValues' => [
+                        'tt_content' => [
+                            'CType' => $type,
+                            'pid' => $targetPageUid,
+                        ],
+                    ],
+                ],
+                GeneralUtility::makeInstance(TcaDatabaseRecord::class),
+            );
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $columns = $formData['processedTca']['columns'] ?? [];
+
+        return \is_array($columns) ? $columns : [];
     }
 
     /** @return list<string> */

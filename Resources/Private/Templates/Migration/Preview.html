@@ -44,6 +44,35 @@
                     Import
                   </label>
                 </header>
+                <div class="cf-migration-fields cf-migration-quick-fields" data-contentflow-migration-quick-fields>
+                  <f:for each="{item.field_definitions}" as="definition">
+                    <f:if condition="{definition.is_quick_setting}">
+                      <label>
+                        <span>{definition.label}<small>{definition.name}</small></span>
+                        <f:if condition="{definition.is_select}">
+                          <f:then>
+                            <f:form.select
+                              name="items[{iteration.index}][fields][{definition.name}]"
+                              value="{definition.value}"
+                              options="{definition.options}"
+                              prependOptionLabel="Use TYPO3 default"
+                              prependOptionValue=""
+                              class="form-select"
+                            />
+                          </f:then>
+                          <f:else>
+                            <f:form.textarea
+                              name="items[{iteration.index}][fields][{definition.name}]"
+                              value="{definition.value}"
+                              rows="2"
+                              class="form-control"
+                            />
+                          </f:else>
+                        </f:if>
+                      </label>
+                    </f:if>
+                  </f:for>
+                </div>
                 <details class="cf-migration-options">
                   <summary>
                     <span>
@@ -70,31 +99,35 @@
                         <f:form.textfield name="items[{iteration.index}][order]" value="{iteration.index}" type="number" class="form-control" />
                       </div>
                     </div>
-                    <div class="cf-migration-fields" data-contentflow-migration-fields>
+                    <div class="cf-migration-fields" data-contentflow-migration-advanced-fields>
                       <f:for each="{item.field_definitions}" as="definition">
-                        <label>
-                          <span>{definition.label}<small>{definition.name}</small></span>
-                          <f:if condition="{definition.is_select}">
-                            <f:then>
-                              <f:form.select
-                                name="items[{iteration.index}][fields][{definition.name}]"
-                                value="{definition.value}"
-                                options="{definition.options}"
-                                prependOptionLabel="Use TYPO3 default"
-                                prependOptionValue=""
-                                class="form-select"
-                              />
-                            </f:then>
-                            <f:else>
-                              <f:form.textarea
-                                name="items[{iteration.index}][fields][{definition.name}]"
-                                value="{definition.value}"
-                                rows="3"
-                                class="form-control"
-                              />
-                            </f:else>
-                          </f:if>
-                        </label>
+                        <f:if condition="{definition.is_quick_setting}">
+                          <f:else>
+                            <label>
+                              <span>{definition.label}<small>{definition.name}</small></span>
+                              <f:if condition="{definition.is_select}">
+                                <f:then>
+                                  <f:form.select
+                                    name="items[{iteration.index}][fields][{definition.name}]"
+                                    value="{definition.value}"
+                                    options="{definition.options}"
+                                    prependOptionLabel="Use TYPO3 default"
+                                    prependOptionValue=""
+                                    class="form-select"
+                                  />
+                                </f:then>
+                                <f:else>
+                                  <f:form.textarea
+                                    name="items[{iteration.index}][fields][{definition.name}]"
+                                    value="{definition.value}"
+                                    rows="3"
+                                    class="form-control"
+                                  />
+                                </f:else>
+                              </f:if>
+                            </label>
+                          </f:else>
+                        </f:if>
                       </f:for>
                     </div>
                   </div>

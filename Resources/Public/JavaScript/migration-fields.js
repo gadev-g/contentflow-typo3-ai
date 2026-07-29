@@ -14,15 +14,27 @@ const initializeMigrationFields = () => {
     }
 
     const schemas = new Map(targetTypes.map((targetType) => [targetType.type, targetType]));
+    const quickFields = new Set([
+        'header_layout',
+        'header_size',
+        'header_position',
+        'frame_class',
+        'space_before_class',
+        'space_after_class',
+    ]);
 
     document.querySelectorAll('[data-contentflow-migration-item]').forEach((item) => {
         const itemIndex = item.dataset.contentflowMigrationItem;
         const typeSelect = item.querySelector('.cf-migration-target-type');
-        const fieldsContainer = item.querySelector('[data-contentflow-migration-fields]');
+        const quickFieldsContainer = item.querySelector('[data-contentflow-migration-quick-fields]');
+        const advancedFieldsContainer = item.querySelector('[data-contentflow-migration-advanced-fields]');
         const valuesByType = new Map();
         let activeType = '';
 
-        if (!itemIndex || !(typeSelect instanceof HTMLSelectElement) || !fieldsContainer) {
+        if (!itemIndex
+            || !(typeSelect instanceof HTMLSelectElement)
+            || !quickFieldsContainer
+            || !advancedFieldsContainer) {
             return;
         }
 
@@ -31,7 +43,7 @@ const initializeMigrationFields = () => {
         const collectValues = (type) => {
             const values = {};
 
-            fieldsContainer.querySelectorAll('[name]').forEach((field) => {
+            item.querySelectorAll('[name]').forEach((field) => {
                 if (!(field instanceof HTMLInputElement)
                     && !(field instanceof HTMLTextAreaElement)
                     && !(field instanceof HTMLSelectElement)) {
@@ -51,7 +63,8 @@ const initializeMigrationFields = () => {
         const renderFields = () => {
             const schema = schemas.get(typeSelect.value);
             const values = valuesByType.get(typeSelect.value) || {};
-            fieldsContainer.replaceChildren();
+            quickFieldsContainer.replaceChildren();
+            advancedFieldsContainer.replaceChildren();
 
             if (!schema || !Array.isArray(schema.fields)) {
                 return;
@@ -62,6 +75,7 @@ const initializeMigrationFields = () => {
                 const title = document.createElement('span');
                 const technicalName = document.createElement('small');
                 const options = schema.field_options?.[fieldName];
+                const defaultValue = schema.field_defaults?.[fieldName];
                 const inputName = typeSelect.name.replace(
                     /\[target_type]$/,
                     `[fields][${fieldName}]`,
@@ -85,7 +99,7 @@ const initializeMigrationFields = () => {
                         const option = document.createElement('option');
                         option.value = value;
                         option.textContent = optionLabel;
-                        option.selected = String(values[fieldName] ?? '') === value;
+                        option.selected = String(values[fieldName] ?? defaultValue ?? '') === value;
                         select.append(option);
                     });
 
@@ -95,11 +109,11 @@ const initializeMigrationFields = () => {
                     textarea.name = inputName;
                     textarea.className = 'form-control';
                     textarea.rows = 3;
-                    textarea.value = String(values[fieldName] ?? '');
+                    textarea.value = String(values[fieldName] ?? defaultValue ?? '');
                     label.append(textarea);
                 }
 
-                fieldsContainer.append(label);
+                (quickFields.has(fieldName) ? quickFieldsContainer : advancedFieldsContainer).append(label);
             });
         };
 

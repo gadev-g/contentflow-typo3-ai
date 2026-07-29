@@ -359,7 +359,8 @@ final class MigrationController extends ActionController
      *     label: string,
      *     value: string,
      *     options: array<string, string>,
-     *     is_select: bool
+     *     is_select: bool,
+     *     is_quick_setting: bool
      * }>
      */
     private function fieldDefinitions(array $targetType, array $values): array
@@ -369,6 +370,17 @@ final class MigrationController extends ActionController
         $fieldOptions = \is_array($targetType['field_options'] ?? null)
             ? $targetType['field_options']
             : [];
+        $fieldDefaults = \is_array($targetType['field_defaults'] ?? null)
+            ? $targetType['field_defaults']
+            : [];
+        $quickSettings = [
+            'header_layout',
+            'header_size',
+            'header_position',
+            'frame_class',
+            'space_before_class',
+            'space_after_class',
+        ];
         $definitions = [];
 
         foreach ($fields as $field) {
@@ -377,13 +389,16 @@ final class MigrationController extends ActionController
             }
 
             $options = \is_array($fieldOptions[$field] ?? null) ? $fieldOptions[$field] : [];
-            $value = \is_scalar($values[$field] ?? null) ? (string) $values[$field] : '';
+            $value = \is_scalar($fieldDefaults[$field] ?? null)
+                ? (string) $fieldDefaults[$field]
+                : (\is_scalar($values[$field] ?? null) ? (string) $values[$field] : '');
             $definitions[] = [
                 'name' => $field,
                 'label' => \is_string($labels[$field] ?? null) ? $labels[$field] : $field,
                 'value' => $value,
                 'options' => $options,
                 'is_select' => [] !== $options,
+                'is_quick_setting' => \in_array($field, $quickSettings, true),
             ];
         }
 

@@ -66,7 +66,6 @@ final class MigrationController extends ActionController
             'migrationTokens' => $this->tokens->all(),
             'hasConfiguredMigrationToken' => $this->sourceConnector->hasConfiguredToken(),
         ]);
-
         return $module->renderResponse('Migration/Index');
     }
 
@@ -161,6 +160,7 @@ final class MigrationController extends ActionController
                         ?? (string) ($item['target_type'] ?? '');
                     $sourceIndex = (int) ($item['source_index'] ?? -1);
                     $item['source_record'] = $elements[$sourceIndex] ?? [];
+                    $item['relations'] = \is_array($item['relations'] ?? null) ? $item['relations'] : [];
                     $item['enabled'] = true;
                     $item['order'] = $itemIndex;
                 }
@@ -169,7 +169,7 @@ final class MigrationController extends ActionController
             unset($item);
 
             $token = bin2hex(random_bytes(24));
-            $this->backendUser()->setAndSaveSessionData('contentflow_migration_'.$token, [
+            $this->backendUser()->setAndSaveSessionData('contentflow_migration_' . $token, [
                 'sourceUrl' => (string) ($source['url'] ?? $sourceUrl),
                 'sourceTitle' => (string) ($source['title'] ?? $sourceUrl),
                 'targetPageUid' => $targetPageUid,
@@ -208,7 +208,7 @@ final class MigrationController extends ActionController
     /** @param array<int|string, mixed> $items */
     public function applyAction(string $previewToken, array $items = []): ResponseInterface
     {
-        $sessionKey = 'contentflow_migration_'.$previewToken;
+        $sessionKey = 'contentflow_migration_' . $previewToken;
 
         try {
             if (!$this->client->hasProduct('content_migration')) {
@@ -230,7 +230,7 @@ final class MigrationController extends ActionController
             $this->client->reportMigrationEvent(
                 (string) ($preview['migrationId'] ?? ''),
                 'applying',
-                'pages:'.(int) $preview['targetPageUid'],
+                'pages:' . (int) $preview['targetPageUid'],
             );
             $created = $this->writer->write(
                 (int) $preview['targetPageUid'],
@@ -241,7 +241,7 @@ final class MigrationController extends ActionController
             $this->client->reportMigrationEvent(
                 (string) ($preview['migrationId'] ?? ''),
                 'completed',
-                'pages:'.(int) $preview['targetPageUid'],
+                'pages:' . (int) $preview['targetPageUid'],
                 ['created_elements' => $created],
             );
             $this->addFlashMessage(
@@ -254,7 +254,7 @@ final class MigrationController extends ActionController
                     $this->client->reportMigrationEvent(
                         (string) ($preview['migrationId'] ?? ''),
                         'failed',
-                        'pages:'.(int) ($preview['targetPageUid'] ?? 0),
+                        'pages:' . (int) ($preview['targetPageUid'] ?? 0),
                         [],
                         ['message' => $exception->getMessage()],
                     );
@@ -278,7 +278,7 @@ final class MigrationController extends ActionController
         $token = $this->tokens->generate($label);
         $this->backendUser()->setAndSaveSessionData('contentflow_new_migration_token', $token);
         $this->addFlashMessage(
-            'Copy this token now. It is shown only once: '.$token,
+            'Copy this token now. It is shown only once: ' . $token,
             'Migration token created',
         );
 
@@ -296,14 +296,9 @@ final class MigrationController extends ActionController
     public function clearSourceTokenAction(): ResponseInterface
     {
         $this->setConfiguredSourceToken('');
-        $this->addFlashMessage(
-            'The saved default source migration token was removed.',
-            'Migration token removed',
-        );
-
+        $this->addFlashMessage('The saved default source migration token was removed.', 'Migration token removed',);
         return $this->redirect('index');
     }
-
     /**
      * @param list<array<string, mixed>> $storedItems
      * @param array<int|string, mixed>   $submittedItems

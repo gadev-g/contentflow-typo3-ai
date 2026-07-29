@@ -23,7 +23,19 @@ final class TargetContentSchema
         'l10n_source',
     ];
 
-    /** @return list<array{type: string, label: string, fields: list<string>}> */
+    /**
+     * @return list<array{
+     *     type: string,
+     *     label: string,
+     *     fields: list<string>,
+     *     field_options: array<string, array<string, string>>,
+     *     relations: array<string, array{
+     *         table: string,
+     *         fields: list<string>,
+     *         media_fields: list<string>
+     *     }>
+     * }>
+     */
     public function availableTypes(): array
     {
         $items = $GLOBALS['TCA']['tt_content']['columns']['CType']['config']['items'] ?? [];
@@ -37,8 +49,9 @@ final class TargetContentSchema
             }
 
             $fields = $this->editableFields($type);
+            $relations = $this->editableRelations($type);
 
-            if ([] === $fields) {
+            if ([] === $fields && [] === $relations) {
                 continue;
             }
 
@@ -46,6 +59,8 @@ final class TargetContentSchema
                 'type' => $type,
                 'label' => $this->itemLabel($item, $type),
                 'fields' => $fields,
+                'field_options' => $this->fieldOptions($fields),
+                'relations' => $relations,
             ];
 
             if (\count($types) >= 50) {
@@ -58,6 +73,8 @@ final class TargetContentSchema
                 'type' => 'text',
                 'label' => 'Text',
                 'fields' => ['header', 'bodytext'],
+                'field_options' => [],
+                'relations' => [],
             ]];
         }
 
@@ -68,6 +85,71 @@ final class TargetContentSchema
         );
 
         return $types;
+    }
+
+    /**
+     * @return array<string, array{
+     *     table: string,
+     *     fields: list<string>,
+     *     media_fields: list<string>
+     * }>
+     */
+    private function editableRelations(string $type): array
+    {
+        $showItem = (string) ($GLOBALS['TCA']['tt_content']['types'][$type]['showitem'] ?? '');
+        $relations = [];
+
+        foreach ($this->expandedFieldDefinitions($showItem) as $fieldDefinition) {
+            $field = trim(explode(';', $fieldDefinition)[0]);
+            $configuration = $GLOBALS['TCA']['tt_content']['columns'][$field]['config'] ?? [];
+            $childTable = (string) ($configuration['foreign_table'] ?? '');
+            $foreignField = (string) ($configuration['foreign_field'] ?? '');
+
+            if (
+                '' === $field
+                || 'inline' !== ($configuration['type'] ?? null)
+                || '' === $childTable
+                || '' === $foreignField
+                || 'sys_file_reference' === $childTable
+                || !isset($GLOBALS['TCA'][$childTable])
+            ) {
+                continue;
+            }
+
+            $childFields = [];
+            $mediaFields = [];
+
+            foreach (($GLOBALS['TCA'][$childTable]['columns'] ?? []) as $childField => $childDefinition) {
+                $childConfiguration = $childDefinition['config'] ?? [];
+                $childFieldType = $childConfiguration['type'] ?? null;
+
+                if (\in_array($childFieldType, ['input', 'text', 'link'], true)) {
+                    $childFields[] = (string) $childField;
+                }
+
+                if (
+                    'file' === $childFieldType
+                    || (
+                        'inline' === $childFieldType
+                        && 'sys_file_reference' === ($childConfiguration['foreign_table'] ?? null)
+                    )
+                ) {
+                    $mediaFields[] = (string) $childField;
+                }
+            }
+
+            if ([] === $childFields && [] === $mediaFields) {
+                continue;
+            }
+
+            $relations[$field] = [
+                'table' => $childTable,
+                'fields' => array_values(array_unique($childFields)),
+                'media_fields' => array_values(array_unique($mediaFields)),
+            ];
+        }
+
+        return $relations;
     }
 
     /** @return list<string> */
@@ -90,7 +172,7 @@ final class TargetContentSchema
             $configuration = $GLOBALS['TCA']['tt_content']['columns'][$field]['config'] ?? [];
             $fieldType = $configuration['type'] ?? null;
 
-            if (!\in_array($fieldType, ['input', 'text'], true)) {
+            if (!\in_array($fieldType, ['input', 'text', 'select'], true)) {
                 continue;
             }
 
@@ -98,6 +180,36 @@ final class TargetContentSchema
         }
 
         return array_values(array_unique($fields));
+    }
+
+    /**
+     * @param list<string> $fields
+     *
+     * @return array<string, array<string, string>>
+     */
+    private function fieldOptions(array $fields): array
+    {
+        $options = [];
+
+        foreach ($fields as $field) {
+            $configuration = $GLOBALS['TCA']['tt_content']['columns'][$field]['config'] ?? [];
+
+            if ('select' !== ($configuration['type'] ?? null)) {
+                continue;
+            }
+
+            foreach (\is_array($configuration['items'] ?? null) ? $configuration['items'] : [] as $item) {
+                $value = $this->itemValue($item);
+
+                if ('' === $value || '--div--' === $value) {
+                    continue;
+                }
+
+                $options[$field][$value] = $this->itemLabel($item, $value);
+            }
+        }
+
+        return $options;
     }
 
     /** @return list<string> */

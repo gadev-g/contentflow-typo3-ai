@@ -34,23 +34,35 @@ final readonly class SourcePageExporter
     {
         $page = $this->resolvePage($sourceUrl);
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
+        $constraints = [
+            $queryBuilder->expr()->eq(
+                'pid',
+                $queryBuilder->createNamedParameter((int) $page['uid'], Connection::PARAM_INT),
+            ),
+            $queryBuilder->expr()->eq(
+                'sys_language_uid',
+                $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
+            ),
+            $queryBuilder->expr()->eq(
+                'hidden',
+                $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
+            ),
+        ];
+
+        if ($this->hasColumn('tt_content', 'tx_gridelements_container')) {
+            $constraints[] = $queryBuilder->expr()->or(
+                $queryBuilder->expr()->eq(
+                    'tx_gridelements_container',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
+                ),
+                $queryBuilder->expr()->isNull('tx_gridelements_container'),
+            );
+        }
+
         $rows = $queryBuilder
             ->select('*')
             ->from('tt_content')
-            ->where(
-                $queryBuilder->expr()->eq(
-                    'pid',
-                    $queryBuilder->createNamedParameter((int) $page['uid'], Connection::PARAM_INT),
-                ),
-                $queryBuilder->expr()->eq(
-                    'sys_language_uid',
-                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
-                ),
-                $queryBuilder->expr()->eq(
-                    'hidden',
-                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
-                ),
-            )
+            ->where(...$constraints)
             ->orderBy('colPos')
             ->addOrderBy('sorting')
             ->executeQuery()
@@ -76,7 +88,7 @@ final readonly class SourcePageExporter
     private function resolvePage(string $sourceUrl): array
     {
         $path = rawurldecode((string) parse_url($sourceUrl, \PHP_URL_PATH));
-        $path = '/'.trim($path, '/');
+        $path = '/' . trim($path, '/');
         $path = '/' === $path ? '/' : rtrim($path, '/');
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
         $row = $queryBuilder
@@ -103,6 +115,23 @@ final readonly class SourcePageExporter
     /** @return array<string, mixed> */
     private function exportRecord(string $table, array $row, string $baseUrl, int $depth): array
     {
+        if (
+            'tt_content' === $table
+            && 'shortcut' === (string) ($row['CType'] ?? '')
+            && null !== ($shortcut = $this->resolveShortcut($row))
+        ) {
+            foreach (['colPos', 'sorting', 'tx_gridelements_container', 'tx_gridelements_columns'] as $field) {
+                if (array_key_exists($field, $row)) {
+                    $shortcut[$field] = $row[$field];
+                }
+            }
+
+            $resolved = $this->exportRecord($table, $shortcut, $baseUrl, $depth);
+            $resolved['source_reference'] = 'shortcut:' . (int) ($row['uid'] ?? 0);
+
+            return $resolved;
+        }
+
         $record = [
             'source_table' => $table,
             'source_uid' => (int) ($row['uid'] ?? 0),
@@ -143,7 +172,87 @@ final readonly class SourcePageExporter
             }
         }
 
+        if ('tt_content' === $table) {
+            $gridChildren = $this->gridChildren((int) ($row['uid'] ?? 0), $baseUrl, $depth + 1);
+
+            if ([] !== $gridChildren) {
+                $record['relations']['contentflow_grid_children'] = $gridChildren;
+            }
+        }
+
         return $record;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function resolveShortcut(array $row): ?array
+    {
+        if (!preg_match('/(?:^|,)tt_content_(\d+)(?:,|$)/', (string) ($row['records'] ?? ''), $match)) {
+            return null;
+        }
+
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
+        $record = $queryBuilder
+            ->select('*')
+            ->from('tt_content')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'uid',
+                    $queryBuilder->createNamedParameter((int) $match[1], Connection::PARAM_INT),
+                ),
+                $queryBuilder->expr()->eq(
+                    'hidden',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
+                ),
+            )
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        return false === $record ? null : $record;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function gridChildren(int $parentUid, string $baseUrl, int $depth): array
+    {
+        if (
+            $parentUid <= 0
+            || $depth > 5
+            || !$this->hasColumn('tt_content', 'tx_gridelements_container')
+        ) {
+            return [];
+        }
+
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
+        $rows = $queryBuilder
+            ->select('*')
+            ->from('tt_content')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'tx_gridelements_container',
+                    $queryBuilder->createNamedParameter($parentUid, Connection::PARAM_INT),
+                ),
+                $queryBuilder->expr()->eq(
+                    'hidden',
+                    $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
+                ),
+            )
+            ->orderBy('tx_gridelements_columns')
+            ->addOrderBy('sorting')
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        return array_map(
+            fn (array $child): array => $this->exportRecord('tt_content', $child, $baseUrl, $depth),
+            $rows,
+        );
+    }
+
+    private function hasColumn(string $table, string $column): bool
+    {
+        $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable($table);
+
+        return $connection->createSchemaManager()->tablesExist([$table])
+            && $connection->createSchemaManager()->introspectTable($table)->hasColumn($column);
     }
 
     /** @return list<array<string, mixed>> */
@@ -192,7 +301,7 @@ final readonly class SourcePageExporter
         foreach ($references as $reference) {
             $file = $reference->getOriginalFile();
             $expires = time() + 3600;
-            $signature = hash_hmac('sha256', $file->getUid().':'.$expires, $this->signingSecret);
+            $signature = hash_hmac('sha256', $file->getUid() . ':' . $expires, $this->signingSecret);
             $media[] = [
                 'source_file_uid' => $file->getUid(),
                 'field' => $field,
@@ -201,8 +310,8 @@ final readonly class SourcePageExporter
                 'size' => $file->getSize(),
                 'sha256' => hash('sha256', $file->getContents()),
                 'metadata' => $reference->getProperties(),
-                'download_url' => rtrim($baseUrl, '/').'/contentflow/migration/media/'
-                    .$file->getUid().'?expires='.$expires.'&signature='.$signature,
+                'download_url' => rtrim($baseUrl, '/') . '/contentflow/migration/media/'
+                    . $file->getUid() . '?expires=' . $expires . '&signature=' . $signature,
             ];
         }
 

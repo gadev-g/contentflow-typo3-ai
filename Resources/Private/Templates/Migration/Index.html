@@ -110,27 +110,28 @@
           </div>
         </div>
 
-        <div class="form-group cf-migration-token-input">
-            <label for="migrationToken">Source migration token</label>
-            <f:form.password
-              name="migrationToken"
-              id="migrationToken"
-              class="form-control"
-              autocomplete="off"
-              placeholder="{f:if(condition: hasConfiguredMigrationToken, then: 'Global default token is configured', else: 'Enter source migration token')}"
-            />
-            <small>
-              <f:if condition="{hasConfiguredMigrationToken}">
-                <f:then>A global default token is configured. Leave this field empty to use it.</f:then>
-                <f:else>Required for the Source Connector. Leave empty when using the HTML scraper.</f:else>
-              </f:if>
-            </small>
-            <label class="cf-checkbox">
-              <f:form.checkbox name="saveMigrationToken" value="1" />
-              <span>Save this token as the global default for future migrations</span>
-            </label>
+        <div class="cf-grid cf-migration-page-grid">
+          <div class="form-group cf-migration-token-input">
+              <label for="migrationToken">Source migration token</label>
+              <f:form.password
+                name="migrationToken"
+                id="migrationToken"
+                class="form-control"
+                autocomplete="off"
+                placeholder="{f:if(condition: hasConfiguredMigrationToken, then: 'Global default token is configured', else: 'Enter source migration token')}"
+              />
+              <small>
+                <f:if condition="{hasConfiguredMigrationToken}">
+                  <f:then>A global default token is configured. Leave this field empty to use it.</f:then>
+                  <f:else>Required for the Source Connector. Leave empty when using the HTML scraper.</f:else>
+                </f:if>
+              </small>
+              <label class="cf-checkbox">
+                <f:form.checkbox name="saveMigrationToken" value="1" />
+                <span>Save this token as the global default for future migrations</span>
+              </label>
+          </div>
         </div>
-
         <div class="cf-migration-proof">
           <span>1</span><p><b>Read</b><small>Extract visible editorial content</small></p>
           <i>→</i>

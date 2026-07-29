@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ContentFlow\Typo3Translation\Service;
 
 use TYPO3\CMS\Core\DataHandling\DataHandler;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 final readonly class MigrationContentWriter
@@ -31,7 +32,7 @@ final readonly class MigrationContentWriter
         }
 
         $data = [];
-        $sorting = 256;
+        $sorting = $this->nextContentSorting($pageUid);
 
         foreach ($items as $index => $item) {
             $targetType = $item['target_type'];
@@ -118,6 +119,7 @@ final readonly class MigrationContentWriter
             }
 
             $data = [];
+            $sortingField = $this->relationSortingField($childTable, $configuration);
 
             foreach (array_values($children) as $index => $child) {
                 if (!\is_array($child)) {
@@ -141,11 +143,17 @@ final readonly class MigrationContentWriter
                     }
                 }
 
-                $data[$childTable]['NEW_contentflow_relation_' . $parentUid . '_' . $index] = [
+                $childData = [
                     'pid' => $pageUid,
                     $foreignField => $parentUid,
                     ...$safeFields,
                 ];
+
+                if (null !== $sortingField) {
+                    $childData[$sortingField] = ($index + 1) * 256;
+                }
+
+                $data[$childTable]['NEW_contentflow_relation_' . $parentUid . '_' . $index] = $childData;
             }
 
             if ([] === $data) {
@@ -305,5 +313,43 @@ final readonly class MigrationContentWriter
         }
 
         return trim($result);
+    }
+
+    private function nextContentSorting(int $pageUid): int
+    {
+        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable('tt_content');
+        $maximum = $connection->fetchOne(
+            'SELECT MAX(sorting) FROM tt_content WHERE pid = ? AND colPos = ? AND deleted = 0',
+            [$pageUid, 0],
+        );
+
+        return max(0, (int) $maximum) + 256;
+    }
+
+    /** @param array<string, mixed> $configuration */
+    private function relationSortingField(string $childTable, array $configuration): ?string
+    {
+        $foreignSorting = $configuration['foreign_sortby'] ?? null;
+
+        if (
+            \is_string($foreignSorting)
+            && '' !== $foreignSorting
+            && isset($GLOBALS['TCA'][$childTable]['columns'][$foreignSorting])
+        ) {
+            return $foreignSorting;
+        }
+
+        $tableSorting = $GLOBALS['TCA'][$childTable]['ctrl']['sortby'] ?? null;
+
+        if (
+            \is_string($tableSorting)
+            && '' !== $tableSorting
+            && isset($GLOBALS['TCA'][$childTable]['columns'][$tableSorting])
+        ) {
+            return $tableSorting;
+        }
+
+        return null;
     }
 }

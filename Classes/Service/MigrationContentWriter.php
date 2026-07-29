@@ -527,7 +527,7 @@ final readonly class MigrationContentWriter
             if ($element->hasAttribute('href')) {
                 $href = trim($element->getAttribute('href'));
 
-                if (!preg_match('#^(https?://|/|#|t3://file\?uid=\d+$)#i', $href)) {
+                if (!preg_match('~^(?:https?://[^\s]+|/[^\s]*|#[^\s]*|t3://file\?uid=\d+)$~i', $href)) {
                     $element->removeAttribute('href');
                 } else {
                     $element->setAttribute('rel', 'noopener noreferrer');
@@ -568,6 +568,12 @@ final readonly class MigrationContentWriter
                     continue;
                 }
 
+                if ($this->linkedDocumentHrefMatches(trim($value), $linkedFile)) {
+                    $fields[$field] = $targetHref;
+
+                    continue;
+                }
+
                 $fields[$field] = str_replace(
                     [
                         'href="' . $originalHref . '"',
@@ -586,11 +592,79 @@ final readonly class MigrationContentWriter
                     '<a href="' . $targetHref . '">',
                     (string) $fields[$field],
                 ) ?? $fields[$field];
+                $fields[$field] = preg_replace_callback(
+                    '/href\s*=\s*(["\'])(.*?)\1/i',
+                    fn (array $match): string => $this->linkedDocumentHrefMatches(
+                        html_entity_decode((string) $match[2], \ENT_QUOTES | \ENT_HTML5),
+                        $linkedFile,
+                    )
+                        ? 'href=' . $match[1] . $targetHref . $match[1]
+                        : $match[0],
+                    (string) $fields[$field],
+                ) ?? $fields[$field];
+                $fields[$field] = preg_replace_callback(
+                    '/<link\s+([^\s>]+)([^>]*)>/i',
+                    fn (array $match): string => $this->linkedDocumentHrefMatches(
+                        html_entity_decode((string) $match[1], \ENT_QUOTES | \ENT_HTML5),
+                        $linkedFile,
+                    )
+                        ? '<a href="' . $targetHref . '">'
+                        : $match[0],
+                    (string) $fields[$field],
+                ) ?? $fields[$field];
                 $fields[$field] = str_replace('</link>', '</a>', (string) $fields[$field]);
             }
         }
 
         return $fields;
+    }
+
+    /** @param array<string, mixed> $linkedFile */
+    private function linkedDocumentHrefMatches(string $href, array $linkedFile): bool
+    {
+        $href = html_entity_decode(trim($href), \ENT_QUOTES | \ENT_HTML5);
+        $originalHref = html_entity_decode(
+            trim((string) ($linkedFile['original_href'] ?? '')),
+            \ENT_QUOTES | \ENT_HTML5,
+        );
+
+        if ('' !== $originalHref && $href === $originalHref) {
+            return true;
+        }
+
+        $sourceUid = (int) ($linkedFile['source_file_uid'] ?? 0);
+
+        if (
+            $sourceUid > 0
+            && (
+                1 === preg_match('/^file:' . $sourceUid . '$/i', $href)
+                || (
+                    1 === preg_match('/^t3:\/\/file\?([^#]+)/i', $href, $match)
+                    && (string) $sourceUid === (string) (
+                        $this->queryParameter($match[1], 'uid')
+                        ?? $this->queryParameter($match[1], 'identifier')
+                        ?? ''
+                    )
+                )
+            )
+        ) {
+            return true;
+        }
+
+        $fileName = rawurldecode(trim((string) ($linkedFile['name'] ?? '')));
+        $path = rawurldecode((string) parse_url($href, \PHP_URL_PATH));
+
+        return '' !== $fileName
+            && '' !== $path
+            && 0 === strcasecmp(basename($path), $fileName);
+    }
+
+    private function queryParameter(string $query, string $name): ?string
+    {
+        parse_str(html_entity_decode($query, \ENT_QUOTES | \ENT_HTML5), $parameters);
+        $value = $parameters[$name] ?? null;
+
+        return \is_scalar($value) ? (string) $value : null;
     }
 
     private function nextContentSorting(int $pageUid): int

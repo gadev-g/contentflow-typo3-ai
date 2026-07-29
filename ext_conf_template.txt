@@ -6,3 +6,9 @@ apiKey =
 
 # cat=basic/enable; type=boolean; label=Enable API debug panel:Shows sanitized request and response payloads in translation and asset previews. Never displays the API key or full image Base64 data.
 debugMode = 0
+
+# cat=migration/enable; type=boolean; label=Allow private migration source hosts:Enable only when the legacy TYPO3 website is reachable exclusively through a trusted private network. Public source URLs do not require this.
+allowPrivateSourceHosts = 0
+
+# cat=migration/enable; type=string; label=Migration signing secret:Optional secret for temporary media download links. Leave empty to use the TYPO3 encryption key.
+migrationSigningSecret =

@@ -131,6 +131,45 @@
           ></f:else
         >
       </f:if>
+      <f:if condition="{products.content_migration}">
+        <f:then>
+          <f:link.action
+            action="index"
+            controller="Migration"
+            class="cf-product-card cf-product-card-migration"
+          >
+            <div class="cf-product-icon">⇄</div>
+            <span class="cf-product-label">CONTENT MIGRATION</span>
+            <h2>Migrate legacy pages</h2>
+            <p>Read an old TYPO3 frontend URL and map its content to the CTypes available in this project.</p>
+            <ul>
+              <li>URL-based content extraction</li>
+              <li>Project-specific CType mapping</li>
+              <li>Review before creating records</li>
+            </ul>
+            <strong>Open Content Migration <span>→</span></strong>
+          </f:link.action>
+        </f:then>
+        <f:else>
+          <f:link.action
+            action="index"
+            controller="Migration"
+            class="cf-product-card cf-product-card-migration cf-product-card-locked"
+          >
+            <em>STARTER</em>
+            <div class="cf-product-icon">⇄</div>
+            <span class="cf-product-label">CONTENT MIGRATION</span>
+            <h2>Migrate legacy pages</h2>
+            <p>Upgrade to convert legacy frontend content into your current TYPO3 content structure.</p>
+            <ul>
+              <li>Automatic source analysis</li>
+              <li>Flexible CType mapping</li>
+              <li>Controlled record creation</li>
+            </ul>
+            <strong>Unlock with Starter <span>→</span></strong>
+          </f:link.action>
+        </f:else>
+      </f:if>
       <f:link.action
         action="index"
         controller="ImageGeneration"

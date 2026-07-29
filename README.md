@@ -13,6 +13,7 @@ Die offizielle TYPO3-Integration für [ContentFlow AI](https://contentflow-ai.co
 - Review-first-Workflow: keine ungeprüften Änderungen
 - Bereinigtes Debug-Fenster für Request und Response
 - Sichere API-Authentifizierung mit projektbezogenen Keys
+- Strukturierte Seitenmigration zwischen TYPO3-Installationen mit Review vor dem Import
 
 ## Voraussetzungen
 
@@ -57,6 +58,26 @@ composer require contentflow/typo3-translation:^0.1
 ```
 
 Nach erfolgreicher Installation erscheint im TYPO3-Backend unter **Web** das Modul **ContentFlow AI**.
+
+## Content Migration
+
+Content Migration übernimmt eine einzelne Seite aus einer alten TYPO3-Installation in eine neue
+TYPO3-12- oder TYPO3-13-Installation. Standard- und Custom-CTypes, Content Blocks, Collections,
+verschachtelte IRRE-Datensätze, Container-Beziehungen und FAL-Medien werden strukturiert übertragen.
+
+1. Installiere die Extension auf der alten und der neuen TYPO3-Installation.
+2. Öffne auf der Quellinstallation **ContentFlow → Content Migration** und erstelle einen
+   widerrufbaren Source-Connector-Token.
+3. Öffne auf der Zielinstallation **ContentFlow → Content Migration**.
+4. Gib die öffentliche URL der Quellseite und den Connector-Token ein.
+5. Prüfe die vorgeschlagene Zuordnung. Ziel-CType, Spalte, Reihenfolge und Feldwerte bleiben
+   vor dem Import editierbar.
+6. Gib die Vorschau frei. TYPO3 schreibt die bestätigten Datensätze mit dem DataHandler und
+   importiert geprüfte Medien in den FAL-Ordner `contentflow-migration`.
+
+Der Connector ist ausschließlich lesend. Tokens werden nur gehasht gespeichert, können jederzeit
+widerrufen werden und berechtigen nur zum Export. Private Quell-Hosts sind standardmäßig gesperrt
+und müssen für lokale Tests über `allowPrivateSourceHosts` ausdrücklich aktiviert werden.
 
 ## ContentFlow-Projekt und API-Key
 

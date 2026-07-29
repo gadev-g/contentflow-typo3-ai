@@ -1,0 +1,98 @@
+<f:layout name="Module" />
+<f:section name="Content">
+  <div class="cf-module">
+    <header class="cf-hero">
+      <div class="cf-brand-copy">
+        <span class="cf-eyebrow">CONTENTFLOW AI · CONTENT MIGRATION</span>
+        <div class="cf-main-row">
+          <div class="cf-logo cf-logo-wordmark">
+            <img src="{f:uri.resource(path: 'Icons/contentflow-module.svg')}" alt="ContentFlow AI" />
+          </div>
+          <div class="cf-heading">
+            <h1>Review migration plan</h1>
+            <p>{sourceBlockCount} source records were mapped to {items -> f:count()} TYPO3 content elements.</p>
+          </div>
+        </div>
+      </div>
+      <span class="cf-status"><i></i> Preview ready</span>
+    </header>
+
+    <f:render partial="ProductMenu" arguments="{currentProduct: 'Content Migration'}" />
+    <f:flashMessages />
+
+    <f:form action="apply" method="post" class="cf-migration-edit-form">
+      <f:form.hidden name="previewToken" value="{previewToken}" />
+      <section class="cf-card cf-migration-review">
+        <div class="cf-card-header">
+          <div class="cf-card-title"><span class="cf-step">2</span><h2>{sourceTitle}</h2></div>
+          <a href="{sourceUrl}" target="_blank" rel="noopener noreferrer">Open source ↗</a>
+        </div>
+        <div class="cf-card-body">
+          <div class="cf-migration-summary">
+            <span><b>{sourceBlockCount}</b> source records</span>
+            <span><b>{items -> f:count()}</b> target elements</span>
+            <span><b>#{targetPageUid}</b> target page</span>
+          </div>
+          <div class="cf-migration-items">
+            <f:for each="{items}" as="item" iteration="iteration">
+              <article>
+                <header>
+                  <span>{iteration.cycle}</span>
+                  <div><b>{item.target_label}</b><small>{item.target_type}</small></div>
+                  <label class="cf-migration-enabled">
+                    <f:form.checkbox name="items[{iteration.index}][enabled]" value="1" checked="true" />
+                    Import
+                  </label>
+                </header>
+                <div class="cf-grid cf-migration-item-settings">
+                  <div class="form-group">
+                    <label>Target content type</label>
+                    <f:form.select
+                      name="items[{iteration.index}][target_type]"
+                      value="{item.target_type}"
+                      options="{targetTypes}"
+                      optionValueField="type"
+                      optionLabelField="label"
+                      class="form-select"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Column</label>
+                    <f:form.textfield name="items[{iteration.index}][column]" value="{item.column}" type="number" class="form-control" />
+                  </div>
+                  <div class="form-group">
+                    <label>Order</label>
+                    <f:form.textfield name="items[{iteration.index}][order]" value="{iteration.index}" type="number" class="form-control" />
+                  </div>
+                </div>
+                <div class="cf-migration-fields">
+                  <f:for each="{item.fields}" as="value" key="field">
+                    <label>
+                      <span>{field}</span>
+                      <f:form.textarea name="items[{iteration.index}][fields][{field}]" value="{value}" rows="4" class="form-control" />
+                    </label>
+                  </f:for>
+                </div>
+                <f:if condition="{item.source_record.media}">
+                  <div class="cf-migration-media">
+                    <b>{item.source_record.media -> f:count()}</b> media file(s) will be imported into FAL.
+                  </div>
+                </f:if>
+              </article>
+            </f:for>
+          </div>
+          <f:if condition="{debug}">
+            <f:render partial="Debug/Exchange" arguments="{debug: debug}" />
+          </f:if>
+        </div>
+        <footer class="cf-card-footer">
+          <f:link.action action="index" class="btn btn-default">Back and adjust</f:link.action>
+          <button type="submit" class="btn btn-primary cf-primary" data-contentflow-save>
+            <span class="cf-submit-idle">Approve and create content</span>
+            <span class="cf-submit-loading"><span class="cf-spinner" aria-hidden="true"></span> Creating content …</span>
+          </button>
+        </footer>
+      </section>
+    </f:form>
+  </div>
+</f:section>

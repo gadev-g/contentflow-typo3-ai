@@ -6,6 +6,7 @@ use ContentFlow\Typo3Translation\Controller\AssetMetadataController;
 use ContentFlow\Typo3Translation\Controller\ContentCreatorController;
 use ContentFlow\Typo3Translation\Controller\HubController;
 use ContentFlow\Typo3Translation\Controller\ImageGenerationController;
+use ContentFlow\Typo3Translation\Controller\MigrationController;
 use ContentFlow\Typo3Translation\Controller\SeoController;
 use ContentFlow\Typo3Translation\Controller\TranslationController;
 
@@ -26,6 +27,7 @@ return [
             ImageGenerationController::class => ['index'],
             ContentCreatorController::class => ['index'],
             SeoController::class => ['index', 'preview', 'apply'],
+            MigrationController::class => ['index', 'preview', 'apply', 'generateToken', 'revokeToken'],
         ],
     ],
 ];

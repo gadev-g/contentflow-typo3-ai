@@ -15,3 +15,6 @@ migrationSourceToken =
 
 # cat=migration/enable; type=string; label=Migration signing secret:Optional secret for temporary media download links. Leave empty to use the TYPO3 encryption key.
 migrationSigningSecret =
+
+# cat=migration/basic; type=int; label=Default pattern library page UID:Globally preselect this TYPO3 page as the pattern library for content migrations.
+migrationPatternPageUid = 0

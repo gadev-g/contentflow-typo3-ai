@@ -47,6 +47,7 @@ final class MigrationController extends ActionController
     {
         $module = $this->moduleTemplateFactory->create($this->request);
         $targetPageUid = $this->request->hasArgument('id') ? (int) $this->request->getArgument('id') : 0;
+        $patternPageUid = $this->configuredPatternPageUid();
 
         try {
             $context = $this->client->integrationContext();
@@ -74,6 +75,7 @@ final class MigrationController extends ActionController
             'providers' => $providers,
             'defaultProvider' => $providers[0]['id'] ?? '',
             'targetPageUid' => $targetPageUid,
+            'patternPageUid' => $patternPageUid,
             'targetTypes' => $this->targetSchema->availableTypes($targetPageUid, $this->request),
             'migrationTokens' => $this->tokens->all(),
             'hasConfiguredMigrationToken' => $this->sourceConnector->hasConfiguredToken(),
@@ -89,6 +91,7 @@ final class MigrationController extends ActionController
         string $migrationToken = '',
         string $model = '',
         bool $saveMigrationToken = false,
+        bool $savePatternPage = false,
         int $referencePageUid = 0,
         int $patternPageUid = 0,
     ): ResponseInterface {
@@ -115,6 +118,12 @@ final class MigrationController extends ActionController
 
             if ('connector' === $sourceMode && $saveMigrationToken && '' !== trim($migrationToken)) {
                 $this->setConfiguredSourceToken(trim($migrationToken));
+            }
+
+            if ($savePatternPage) {
+                $this->setConfiguredPatternPageUid($patternPageUid);
+            } elseif ($patternPageUid <= 0) {
+                $patternPageUid = $this->configuredPatternPageUid();
             }
 
             $export = 'html' === $sourceMode
@@ -859,6 +868,22 @@ final class MigrationController extends ActionController
         /** @var array<string, mixed> $configuration */
         $configuration = $this->extensionConfiguration->get('contentflow_translation');
         $configuration['migrationSourceToken'] = $token;
+        $this->extensionConfiguration->set('contentflow_translation', $configuration);
+    }
+
+    private function configuredPatternPageUid(): int
+    {
+        /** @var array<string, mixed> $configuration */
+        $configuration = $this->extensionConfiguration->get('contentflow_translation');
+
+        return max(0, (int) ($configuration['migrationPatternPageUid'] ?? 0));
+    }
+
+    private function setConfiguredPatternPageUid(int $pageUid): void
+    {
+        /** @var array<string, mixed> $configuration */
+        $configuration = $this->extensionConfiguration->get('contentflow_translation');
+        $configuration['migrationPatternPageUid'] = max(0, $pageUid);
         $this->extensionConfiguration->set('contentflow_translation', $configuration);
     }
 }

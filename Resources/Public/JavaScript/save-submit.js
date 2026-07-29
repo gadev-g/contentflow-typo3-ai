@@ -1,6 +1,6 @@
-document.querySelectorAll('.cf-approve-form').forEach((form) => {
+document.querySelectorAll('.cf-approve-form, .cf-migration-edit-form').forEach((form) => {
   form.addEventListener('submit', (event) => {
-    const button = form.querySelector('.cf-approve-submit');
+    const button = form.querySelector('.cf-approve-submit, [data-contentflow-save]');
 
     if (!button || button.dataset.loading === 'true') {
       event.preventDefault();
@@ -10,7 +10,10 @@ document.querySelectorAll('.cf-approve-form').forEach((form) => {
 
     button.dataset.loading = 'true';
     button.setAttribute('aria-busy', 'true');
-    button.innerHTML = '<span class="cf-spinner" aria-hidden="true"></span><span>Saving …</span>';
+
+    if (!button.querySelector('.cf-submit-loading')) {
+      button.innerHTML = '<span class="cf-spinner" aria-hidden="true"></span><span>Saving …</span>';
+    }
 
     /*
      * Keep the submit control enabled while the browser and TYPO3 collect the

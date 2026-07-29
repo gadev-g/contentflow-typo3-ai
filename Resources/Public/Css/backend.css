@@ -71,6 +71,10 @@
 #contentflow-translation-submit .cf-submit-loading { display: none; align-items: center; gap: 8px; }
 #contentflow-translation-submit[data-loading='true'] .cf-submit-idle { display: none; }
 #contentflow-translation-submit[data-loading='true'] .cf-submit-loading { display: inline-flex; }
+.cf-primary .cf-submit-loading { display: none; align-items: center; gap: 8px; }
+.cf-primary[data-loading='true'] .cf-submit-idle { display: none; }
+.cf-primary[data-loading='true'] .cf-submit-loading { display: inline-flex; }
+.cf-primary[data-loading='true'] { cursor: wait; pointer-events: none; }
 .cf-approve-submit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 160px; }
 .cf-approve-submit[data-loading='true'] { cursor: wait; opacity: .88; }
 .cf-scope-select { margin-bottom: 20px !important; }

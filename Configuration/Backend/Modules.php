@@ -27,7 +27,7 @@ return [
             ImageGenerationController::class => ['index'],
             ContentCreatorController::class => ['index'],
             SeoController::class => ['index', 'preview', 'apply'],
-            MigrationController::class => ['index', 'preview', 'apply', 'generateToken', 'revokeToken'],
+            MigrationController::class => ['index', 'preview', 'apply', 'generateToken', 'revokeToken', 'clearSourceToken'],
         ],
     ],
 ];

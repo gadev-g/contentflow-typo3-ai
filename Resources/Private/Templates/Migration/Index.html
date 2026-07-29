@@ -67,8 +67,18 @@
               id="migrationToken"
               class="form-control"
               autocomplete="off"
+              placeholder="{f:if(condition: hasConfiguredMigrationToken, then: 'Global default token is configured', else: 'Enter source migration token')}"
             />
-            <small>Required for the Source Connector. Leave empty when using the HTML scraper.</small>
+            <small>
+              <f:if condition="{hasConfiguredMigrationToken}">
+                <f:then>A global default token is configured. Leave this field empty to use it.</f:then>
+                <f:else>Required for the Source Connector. Leave empty when using the HTML scraper.</f:else>
+              </f:if>
+            </small>
+            <label class="cf-checkbox">
+              <f:form.checkbox name="saveMigrationToken" value="1" />
+              <span>Save this token as the global default for future migrations</span>
+            </label>
           </div>
         </div>
 
@@ -104,6 +114,13 @@
         </button>
       </footer>
     </f:form>
+
+    <f:if condition="{hasConfiguredMigrationToken}">
+      <f:form action="clearSourceToken" method="post" class="cf-migration-token-default">
+        <span>A global source migration token is currently configured.</span>
+        <button type="submit" class="btn btn-default btn-sm">Remove saved token</button>
+      </f:form>
+    </f:if>
 
     <section class="cf-card cf-migration-token-card">
       <div class="cf-card-header">

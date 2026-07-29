@@ -279,6 +279,9 @@
 @media (max-width: 1000px) { .cf-migration-source-grid { grid-template-columns: 1fr; } .cf-migration-proof { grid-template-columns: 34px 1fr; } .cf-migration-proof > i { display: none; } }
 @media (max-width: 700px) { .cf-migration-summary { grid-template-columns: 1fr; } .cf-migration-items dl > div { grid-template-columns: 1fr; gap: 4px; } }
 .cf-migration-token-card { margin-top: 24px; }
+.cf-checkbox { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; color: #53647a; font-size: 12px; font-weight: 600; }
+.cf-checkbox input { margin-top: 2px; }
+.cf-migration-token-default { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px; padding: 12px 15px; border: 1px solid #d9e5f5; border-radius: 11px; background: #f7fbff; color: #53647a; font-size: 12px; }
 .cf-token-create { display: grid; grid-template-columns: minmax(240px, 1fr) auto; gap: 16px; align-items: end; }
 .cf-token-list { display: grid; gap: 10px; margin-top: 24px; }
 .cf-token-list article { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid #dce5f2; border-radius: 12px; background: #f8fbff; }
@@ -292,4 +295,4 @@
 .cf-migration-fields label { display: grid; gap: 7px; }
 .cf-migration-fields label > span { font-weight: 700; }
 .cf-migration-media { margin: 0 16px 16px; padding: 11px 13px; border-radius: 10px; color: #086a4b; background: #e9f8f2; }
-@media (max-width: 900px) { .cf-token-create, .cf-migration-item-settings { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .cf-token-create, .cf-migration-item-settings { grid-template-columns: 1fr; } .cf-migration-token-default { align-items: flex-start; flex-direction: column; } }

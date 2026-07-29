@@ -108,6 +108,8 @@ final class MigrationController extends ActionController
                 : $this->sourceConnector->export($sourceUrl, $migrationToken);
             $source = \is_array($export['source'] ?? null) ? $export['source'] : [];
             $elements = \is_array($export['elements'] ?? null) ? array_values($export['elements']) : [];
+            $sourceTitle = trim((string) ($source['title'] ?? ''));
+            $elements = $this->prependSourceTitle($elements, $sourceTitle, $source);
 
             if ([] === $elements) {
                 throw new \RuntimeException('The source page contains no exportable content elements.');
@@ -136,7 +138,7 @@ final class MigrationController extends ActionController
             $targetTypes = $this->targetSchema->availableTypes($targetPageUid, $this->request);
             $result = $this->client->planMigration(
                 (string) ($source['url'] ?? $sourceUrl),
-                (string) ($source['title'] ?? $sourceUrl),
+                '' !== $sourceTitle ? $sourceTitle : $sourceUrl,
                 $blocks,
                 $targetTypes,
                 $provider,
@@ -186,7 +188,7 @@ final class MigrationController extends ActionController
             );
             $this->backendUser()->setAndSaveSessionData('contentflow_migration_' . $token, [
                 'sourceUrl' => (string) ($source['url'] ?? $sourceUrl),
-                'sourceTitle' => (string) ($source['title'] ?? $sourceUrl),
+                'sourceTitle' => '' !== $sourceTitle ? $sourceTitle : $sourceUrl,
                 'targetPageUid' => $targetPageUid,
                 'sourceMode' => $sourceMode,
                 'items' => $items,
@@ -198,7 +200,7 @@ final class MigrationController extends ActionController
             $module = $this->moduleTemplateFactory->create($this->request);
             $module->assignMultiple([
                 'sourceUrl' => (string) ($source['url'] ?? $sourceUrl),
-                'sourceTitle' => (string) ($source['title'] ?? $sourceUrl),
+                'sourceTitle' => '' !== $sourceTitle ? $sourceTitle : $sourceUrl,
                 'sourceBlockCount' => \count($blocks),
                 'targetPageUid' => $targetPageUid,
                 'items' => $items,
@@ -403,6 +405,67 @@ final class MigrationController extends ActionController
         }
 
         return $definitions;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $elements
+     * @param array<string, mixed>       $source
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function prependSourceTitle(array $elements, string $sourceTitle, array $source): array
+    {
+        $sourceUrl = \is_scalar($source['url'] ?? null) ? (string) $source['url'] : '';
+
+        if (
+            '' === $sourceTitle
+            || $this->normalizeEditorialText($sourceTitle) === $this->normalizeEditorialText($sourceUrl)
+            || $this->containsSourceTitle($elements, $sourceTitle)
+        ) {
+            return $elements;
+        }
+
+        array_unshift($elements, [
+            'source_table' => 'pages',
+            'source_uid' => (int) ($source['page_uid'] ?? 0),
+            'type' => 'header',
+            'column' => 0,
+            'sorting' => 0,
+            'fields' => ['header' => $sourceTitle],
+            'relations' => [],
+            'media' => [],
+            'synthetic' => true,
+        ]);
+
+        return $elements;
+    }
+
+    /** @param list<array<string, mixed>> $elements */
+    private function containsSourceTitle(array $elements, string $sourceTitle): bool
+    {
+        $normalizedTitle = $this->normalizeEditorialText($sourceTitle);
+
+        foreach ($elements as $element) {
+            $fields = \is_array($element['fields'] ?? null) ? $element['fields'] : [];
+
+            foreach (['header', 'title', 'headline'] as $field) {
+                if (
+                    \is_scalar($fields[$field] ?? null)
+                    && $normalizedTitle === $this->normalizeEditorialText((string) $fields[$field])
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeEditorialText(string $value): string
+    {
+        $plainText = html_entity_decode(strip_tags($value), \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
+
+        return mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $plainText)), 'UTF-8');
     }
 
     private function backendUser(): BackendUserAuthentication

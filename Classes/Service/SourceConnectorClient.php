@@ -52,6 +52,7 @@ final readonly class SourceConnectorClient
             'body' => json_encode(['source_url' => $sourceUrl], \JSON_THROW_ON_ERROR),
             'timeout' => 60,
             'allow_redirects' => false,
+            'http_errors' => false,
         ];
         $response = $this->requestFactory->request(
             $origin.'/contentflow/migration/export',

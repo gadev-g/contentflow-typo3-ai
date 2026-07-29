@@ -33,6 +33,7 @@ final readonly class MigrationContentWriter
 
         $data = [];
         $sorting = $this->nextContentSorting($pageUid);
+        $sortingByIdentifier = [];
 
         foreach ($items as $index => $item) {
             $targetType = $item['target_type'];
@@ -55,13 +56,15 @@ final readonly class MigrationContentWriter
             if ([] === $fields && [] === $relations && [] === $sourceMedia) {
                 continue;
             }
-            $data['tt_content']['NEW_contentflow_migration_' . $index] = [
+            $identifier = 'NEW_contentflow_migration_' . $index;
+            $data['tt_content'][$identifier] = [
                 'pid' => $pageUid,
                 'CType' => $targetType,
                 'colPos' => 0,
                 'sorting' => $sorting,
                 ...$fields,
             ];
+            $sortingByIdentifier[$identifier] = $sorting;
             $sorting += 256;
         }
 
@@ -77,6 +80,7 @@ final readonly class MigrationContentWriter
             throw new \RuntimeException(implode(' ', $handler->errorLog));
         }
 
+        $this->enforceSorting('tt_content', 'sorting', $sortingByIdentifier, $handler);
         $created = \count($data['tt_content']);
         $this->writeRelationsAndMedia($handler, $pageUid, $items);
 
@@ -120,6 +124,7 @@ final readonly class MigrationContentWriter
 
             $data = [];
             $sortingField = $this->relationSortingField($childTable, $configuration);
+            $sortingByIdentifier = [];
 
             foreach (array_values($children) as $index => $child) {
                 if (!\is_array($child)) {
@@ -151,6 +156,8 @@ final readonly class MigrationContentWriter
 
                 if (null !== $sortingField) {
                     $childData[$sortingField] = ($index + 1) * 256;
+                    $sortingByIdentifier['NEW_contentflow_relation_' . $parentUid . '_' . $index]
+                        = ($index + 1) * 256;
                 }
 
                 $data[$childTable]['NEW_contentflow_relation_' . $parentUid . '_' . $index] = $childData;
@@ -166,6 +173,10 @@ final readonly class MigrationContentWriter
 
             if ([] !== $handler->errorLog) {
                 throw new \RuntimeException(implode(' ', $handler->errorLog));
+            }
+
+            if (null !== $sortingField) {
+                $this->enforceSorting($childTable, $sortingField, $sortingByIdentifier, $handler);
             }
 
             foreach (array_values($children) as $index => $child) {
@@ -351,5 +362,26 @@ final readonly class MigrationContentWriter
         }
 
         return null;
+    }
+
+    /**
+     * @param array<string, int> $sortingByIdentifier
+     */
+    private function enforceSorting(
+        string $table,
+        string $sortingField,
+        array $sortingByIdentifier,
+        DataHandler $handler,
+    ): void {
+        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable($table);
+
+        foreach ($sortingByIdentifier as $identifier => $sorting) {
+            $uid = (int) ($handler->substNEWwithIDs[$identifier] ?? 0);
+
+            if ($uid > 0) {
+                $connection->update($table, [$sortingField => $sorting], ['uid' => $uid]);
+            }
+        }
     }
 }

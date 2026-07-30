@@ -358,6 +358,15 @@ final readonly class MigrationContentWriter
             $children = \is_array($relations['contentflow_grid_children'] ?? null)
                 ? array_values($relations['contentflow_grid_children'])
                 : [];
+            $resolvedChildren = array_values(array_filter(
+                $children,
+                static fn (mixed $child): bool => \is_array($child)
+                    && 'shortcut' !== (string) ($child['type'] ?? ''),
+            ));
+
+            if ([] !== $resolvedChildren) {
+                $children = $resolvedChildren;
+            }
 
             if ([] === $children) {
                 continue;

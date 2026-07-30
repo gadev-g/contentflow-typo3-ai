@@ -946,10 +946,6 @@ final class MigrationController extends ActionController
                         ? $items[$candidateIndex]
                         : [];
 
-                    if ($targetType !== (string) ($candidate['target_type'] ?? '')) {
-                        break;
-                    }
-
                     $nextSourceIndices = $this->sourceIndices($candidate);
                     $nextSourceRecord = $this->combinedSourceRecord($elements, $nextSourceIndices);
 
@@ -1014,6 +1010,18 @@ final class MigrationController extends ActionController
         $relations = \is_array($sourceRecord['relations'] ?? null)
             ? $sourceRecord['relations']
             : [];
+        $gridChildren = \is_array($relations['contentflow_grid_children'] ?? null)
+            ? array_values(array_filter(
+                $relations['contentflow_grid_children'],
+                static fn (mixed $child): bool => \is_array($child)
+                    && 'shortcut' !== (string) ($child['type'] ?? ''),
+            ))
+            : [];
+
+        if ([] !== $gridChildren) {
+            return \count($gridChildren);
+        }
+
         $slotCount = 0;
 
         foreach ($relations as $children) {

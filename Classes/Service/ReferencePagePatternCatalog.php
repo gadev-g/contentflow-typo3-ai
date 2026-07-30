@@ -64,6 +64,10 @@ final readonly class ReferencePagePatternCatalog
             ->fetchAllAssociative();
 
         foreach ($rows as $position => $row) {
+            if ($this->isNestedContentRecord($row)) {
+                continue;
+            }
+
             $type = (string) ($row['CType'] ?? '');
             $targetIndex = $typesByName[$type] ?? null;
 
@@ -137,6 +141,19 @@ final readonly class ReferencePagePatternCatalog
         }
 
         return $targetTypes;
+    }
+
+    /** @param array<string, mixed> $row */
+    private function isNestedContentRecord(array $row): bool
+    {
+        foreach (['tx_container_parent', 'tx_gridelements_container', 'tx_flux_parent'] as $parentField) {
+            if ((int) ($row[$parentField] ?? 0) > 0) {
+                return true;
+            }
+        }
+
+        return (int) ($row['parentid'] ?? 0) > 0
+            && 'tt_content' === (string) ($row['parenttable'] ?? '');
     }
 
     /** @param array<string, mixed> $targetType */

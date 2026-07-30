@@ -72,10 +72,6 @@ final class TranslationController extends ActionController
         return $module->renderResponse('Translation/Index');
     }
 
-    /**
-     * @param list<array{id: string}> $providers
-     * @return list<array{id: string, label: string, provider: string}>
-     */
     private function availableModels(array $providers): array
     {
         $models = [];
@@ -129,7 +125,7 @@ final class TranslationController extends ActionController
 
             foreach ($selection as $record) {
                 $sourceFields = $this->reader->read($record['table'], $record['uid']);
-                $reference = $record['table'].':'.$record['uid'];
+                $reference = $record['table'] . ':' . $record['uid'];
                 $previewRecords[$reference] = $record + [
                     'reference' => $reference,
                     'sourceFields' => $sourceFields,
@@ -151,7 +147,7 @@ final class TranslationController extends ActionController
                     $model,
                 )
                 : [
-                    'job_id' => 'typo3-structure-'.bin2hex(random_bytes(6)),
+                    'job_id' => 'typo3-structure-' . bin2hex(random_bytes(6)),
                     'records' => [],
                     'meta' => [
                         'provider' => 'TYPO3',
@@ -174,17 +170,16 @@ final class TranslationController extends ActionController
                     $previewRecords[$reference]['translatedFields'] = $translatedRecord['fields'] ?? [];
                 }
             }
-
             foreach ($previewRecords as $record) {
                 if ([] !== $record['sourceFields'] && [] === $record['translatedFields']) {
-                    throw new \RuntimeException('The provider did not return a translation for '.$record['reference'].'.');
+                    throw new \RuntimeException('The provider did not return a translation for ' . $record['reference'] . '.');
                 }
             }
 
             $previewRecords = array_values($previewRecords);
             $token = bin2hex(random_bytes(24));
 
-            $this->backendUser()->setAndSaveSessionData('contentflow_translation_'.$token, [
+            $this->backendUser()->setAndSaveSessionData('contentflow_translation_' . $token, [
                 'records' => $previewRecords,
                 'targetLanguageId' => $targetLanguageId,
                 'jobId' => $result['job_id'],
@@ -211,7 +206,7 @@ final class TranslationController extends ActionController
 
     public function applyAction(string $previewToken): ResponseInterface
     {
-        $sessionKey = 'contentflow_translation_'.$previewToken;
+        $sessionKey = 'contentflow_translation_' . $previewToken;
         $preview = $this->backendUser()->getSessionData($sessionKey);
 
         try {
@@ -229,14 +224,13 @@ final class TranslationController extends ActionController
                     (array) $record['translatedFields'],
                 );
             }
-
             if ([] === $localizedUids) {
                 throw new \RuntimeException('The preview does not contain any records.');
             }
 
             $this->backendUser()->setAndSaveSessionData($sessionKey, null);
             $this->addFlashMessage(
-                \count($localizedUids).' reviewed translation(s) were saved.',
+                \count($localizedUids) . ' reviewed translation(s) were saved.',
                 'Translations saved',
             );
         } catch (\Throwable $exception) {
@@ -251,10 +245,6 @@ final class TranslationController extends ActionController
         return $GLOBALS['BE_USER'];
     }
 
-    /**
-     * @param list<array{reference: string, fields: array<string, string>}> $records
-     * @return array<string, mixed>
-     */
     private function translateInBatches(
         array $records,
         string $sourceLanguage,
@@ -279,7 +269,7 @@ final class TranslationController extends ActionController
             );
 
             $translatedRecords = array_merge($translatedRecords, (array) ($result['records'] ?? []));
-            $jobIds[] = (string) ($result['job_id'] ?? 'batch-'.($index + 1));
+            $jobIds[] = (string) ($result['job_id'] ?? 'batch-' . ($index + 1));
 
             if ([] === $meta && \is_array($result['meta'] ?? null)) {
                 $meta = $result['meta'];
@@ -299,14 +289,13 @@ final class TranslationController extends ActionController
         return [
             'job_id' => 1 === \count($jobIds)
                 ? $jobIds[0]
-                : $jobIds[0].' + '.(\count($jobIds) - 1).' batch(es)',
+                : $jobIds[0] . ' + ' . (\count($jobIds) - 1) . ' batch(es)',
             'records' => $translatedRecords,
             'meta' => $meta,
             '_debug_items' => $debugItems,
         ];
     }
 
-    /** @return list<array{id: int, code: string, title: string, isDefault: bool}> */
     private function availableLanguages(): array
     {
         $languages = [];
@@ -366,7 +355,6 @@ final class TranslationController extends ActionController
         return (int) $uid;
     }
 
-    /** @return list<array{table: string, uid: int}> */
     private function resolveSelection(string $scope, string $table, int $uid, string $uids): array
     {
         if ('multiple' === $scope) {
@@ -384,7 +372,6 @@ final class TranslationController extends ActionController
                 $selected,
             );
         }
-
         if ('page' === $scope) {
             $selection = [['table' => 'pages', 'uid' => $uid]];
             $query = $this->connectionPool->getQueryBuilderForTable('tt_content');
@@ -419,15 +406,6 @@ final class TranslationController extends ActionController
         return [['table' => $table, 'uid' => $this->resolveRecordUid($table, $uid)]];
     }
 
-    /**
-     * Expand selected containers recursively. This supports EXT:container,
-     * Gridelements, Flux and common project-specific parent relations while
-     * keeping the result stable and free of duplicates.
-     *
-     * @param list<array{table: string, uid: int}> $selection
-     *
-     * @return list<array{table: string, uid: int}>
-     */
     private function expandNestedContent(array $selection): array
     {
         $expanded = [];
@@ -442,7 +420,7 @@ final class TranslationController extends ActionController
                 continue;
             }
 
-            $key = $record['table'].':'.$record['uid'];
+            $key = $record['table'] . ':' . $record['uid'];
 
             if (isset($visited[$key])) {
                 continue;
@@ -454,11 +432,9 @@ final class TranslationController extends ActionController
             foreach ($this->reader->relatedCollectionRecords($record['table'], $record['uid']) as $relatedRecord) {
                 $queue[] = $relatedRecord;
             }
-
             if ('tt_content' !== $record['table']) {
                 continue;
             }
-
             foreach ($parentRelations as $relation) {
                 $query = $this->connectionPool->getQueryBuilderForTable('tt_content');
                 $conditions = [
@@ -496,22 +472,13 @@ final class TranslationController extends ActionController
         return $expanded;
     }
 
-    /**
-     * A child can only be localized after its connected container translation
-     * exists. Add missing ancestors and keep them before the selected child.
-     *
-     * @param list<array{table: string, uid: int}>            $selection
-     * @param list<array{field: string, tableField?: string}> $relations
-     *
-     * @return list<array{table: string, uid: int}>
-     */
     private function includeContainerAncestors(array $selection, array $relations): array
     {
         $ordered = [];
         $added = [];
 
         $add = function (array $record) use (&$add, &$ordered, &$added, $relations): void {
-            $key = $record['table'].':'.$record['uid'];
+            $key = $record['table'] . ':' . $record['uid'];
 
             if (isset($added[$key])) {
                 return;
@@ -537,7 +504,6 @@ final class TranslationController extends ActionController
         return $ordered;
     }
 
-    /** @param list<array{field: string, tableField?: string}> $relations */
     private function contentParentUid(int $uid, array $relations): int
     {
         foreach ($relations as $relation) {
@@ -562,7 +528,6 @@ final class TranslationController extends ActionController
             if (!$record || (int) ($record[$relation['field']] ?? 0) <= 0) {
                 continue;
             }
-
             if (isset($relation['tableField']) && 'tt_content' !== ($record[$relation['tableField']] ?? null)) {
                 continue;
             }
@@ -573,7 +538,6 @@ final class TranslationController extends ActionController
         return 0;
     }
 
-    /** @return list<array{field: string, tableField?: string}> */
     private function availableContentParentRelations(): array
     {
         $schemaManager = $this->connectionPool->getConnectionForTable('tt_content')->createSchemaManager();
@@ -585,7 +549,6 @@ final class TranslationController extends ActionController
                 $relations[] = ['field' => $field];
             }
         }
-
         if (isset($columns['parentid'], $columns['parenttable'])) {
             $relations[] = ['field' => 'parentid', 'tableField' => 'parenttable'];
         }

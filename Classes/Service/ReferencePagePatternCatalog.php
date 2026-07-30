@@ -13,11 +13,6 @@ final readonly class ReferencePagePatternCatalog
     {
     }
 
-    /**
-     * @param list<array<string, mixed>> $targetTypes
-     *
-     * @return list<array<string, mixed>>
-     */
     public function enrich(
         array $targetTypes,
         int $referencePageUid,
@@ -26,7 +21,6 @@ final readonly class ReferencePagePatternCatalog
         if ($referencePageUid <= 0) {
             return $targetTypes;
         }
-
         if (!\in_array($patternField, ['reference_patterns', 'catalog_patterns'], true)) {
             throw new \InvalidArgumentException('Unsupported migration pattern field.');
         }
@@ -74,7 +68,6 @@ final readonly class ReferencePagePatternCatalog
             if (null === $targetIndex) {
                 continue;
             }
-
             if (\count($targetTypes[$targetIndex][$patternField]) >= 25) {
                 continue;
             }
@@ -102,14 +95,12 @@ final readonly class ReferencePagePatternCatalog
                 if ('' !== trim($value)) {
                     $fieldValues[$field] = mb_substr($value, 0, 2000);
                 }
-
                 if (
                     '' === trim($value)
                     && \in_array($field, ['header', 'subheader'], true)
                 ) {
                     $emptyFields[] = $field;
                 }
-
                 if (
                     \is_array($fieldOptions[$field] ?? null)
                     && \array_key_exists($value, $fieldOptions[$field])
@@ -143,7 +134,6 @@ final readonly class ReferencePagePatternCatalog
         return $targetTypes;
     }
 
-    /** @param array<string, mixed> $row */
     private function isNestedContentRecord(array $row): bool
     {
         foreach (['tx_container_parent', 'tx_gridelements_container', 'tx_flux_parent'] as $parentField) {
@@ -156,7 +146,6 @@ final readonly class ReferencePagePatternCatalog
             && 'tt_content' === (string) ($row['parenttable'] ?? '');
     }
 
-    /** @param array<string, mixed> $targetType */
     private function patternLabel(array $targetType, array $row): string
     {
         $typeLabel = \is_string($targetType['label'] ?? null)
@@ -167,11 +156,6 @@ final readonly class ReferencePagePatternCatalog
         return '' === $header ? $typeLabel : $typeLabel . ': ' . mb_substr(strip_tags($header), 0, 100);
     }
 
-    /**
-     * @param array<string, mixed> $targetType
-     *
-     * @return array<string, int>
-     */
     private function relationCounts(array $targetType, int $parentUid): array
     {
         $counts = [];
@@ -208,14 +192,6 @@ final readonly class ReferencePagePatternCatalog
         return $counts;
     }
 
-    /**
-     * @return array{
-     *     columns: list<int>,
-     *     parent_field: string,
-     *     column_field: string,
-     *     child_col_pos: int
-     * }
-     */
     private function containerConfiguration(int $pageUid, int $parentUid): array
     {
         $connection = $this->connectionPool->getConnectionForTable('tt_content');
@@ -239,8 +215,8 @@ final readonly class ReferencePagePatternCatalog
             $parentField = 'tx_container_parent';
             $columnField = 'colPos';
         } elseif (
-            $table->hasColumn('tx_gridelements_container')
-            && $table->hasColumn('tx_gridelements_columns')
+                $table->hasColumn('tx_gridelements_container')
+                && $table->hasColumn('tx_gridelements_columns')
         ) {
             $parentField = 'tx_gridelements_container';
             $columnField = 'tx_gridelements_columns';

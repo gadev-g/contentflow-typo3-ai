@@ -16,9 +16,6 @@ final readonly class MigrationContentWriter
     ) {
     }
 
-    /**
-     * @param list<array{source_index: int, target_type: string, fields: array<string, string>}> $items
-     */
     public function write(int $pageUid, array $items, bool $clearExistingContent = false): int
     {
         if ($pageUid <= 0) {
@@ -89,11 +86,9 @@ final readonly class MigrationContentWriter
             $sortingByIdentifier[$identifier] = $sorting;
             $sorting += 256;
         }
-
         if ([] === $data) {
             throw new \RuntimeException('The migration preview contains no writable content elements.');
         }
-
         if ($clearExistingContent) {
             $this->clearPageContent($pageUid);
         }
@@ -143,7 +138,6 @@ final readonly class MigrationContentWriter
         }
     }
 
-    /** @param list<array<string, mixed>> $items */
     private function writeRelationsAndMedia(DataHandler $parentHandler, int $pageUid, array $items): void
     {
         foreach ($items as $index => $item) {
@@ -168,7 +162,6 @@ final readonly class MigrationContentWriter
         }
     }
 
-    /** @param array<string, mixed> $relations */
     private function writeInlineRelations(string $parentTable, int $parentUid, int $pageUid, array $relations): void
     {
         foreach ($relations as $field => $children) {
@@ -223,7 +216,6 @@ final readonly class MigrationContentWriter
 
                 $data[$childTable]['NEW_contentflow_relation_' . $parentUid . '_' . $index] = $childData;
             }
-
             if ([] === $data) {
                 continue;
             }
@@ -235,11 +227,9 @@ final readonly class MigrationContentWriter
             if ([] !== $handler->errorLog) {
                 throw new \RuntimeException(implode(' ', $handler->errorLog));
             }
-
             if (null !== $sortingField) {
                 $this->enforceSorting($childTable, $sortingField, $sortingByIdentifier, $handler);
             }
-
             foreach (array_values($children) as $index => $child) {
                 if (!\is_array($child)) {
                     continue;
@@ -269,7 +259,6 @@ final readonly class MigrationContentWriter
         }
     }
 
-    /** @param list<array<string, mixed>> $mediaItems */
     private function writeMedia(string $parentTable, int $parentUid, int $pageUid, array $mediaItems): void
     {
         $data = [];
@@ -298,7 +287,6 @@ final readonly class MigrationContentWriter
                 'description' => (string) ($media['metadata']['description'] ?? ''),
             ];
         }
-
         if ([] === $data) {
             return;
         }
@@ -312,7 +300,6 @@ final readonly class MigrationContentWriter
         }
     }
 
-    /** @param list<array<string, mixed>> $items */
     private function writeContainerChildren(
         DataHandler $parentHandler,
         int $pageUid,
@@ -367,7 +354,6 @@ final readonly class MigrationContentWriter
             if ([] !== $resolvedChildren) {
                 $children = $resolvedChildren;
             }
-
             if ([] === $children) {
                 continue;
             }
@@ -445,7 +431,6 @@ final readonly class MigrationContentWriter
                 $data['tt_content'][$identifier] = $childData;
                 $preparedChildren[$identifier] = $child;
             }
-
             if ([] === $data) {
                 continue;
             }
@@ -457,7 +442,6 @@ final readonly class MigrationContentWriter
             if ([] !== $handler->errorLog) {
                 throw new \RuntimeException(implode(' ', $handler->errorLog));
             }
-
             foreach ($preparedChildren as $identifier => $child) {
                 $childUid = (int) ($handler->substNEWwithIDs[$identifier] ?? 0);
 
@@ -478,11 +462,6 @@ final readonly class MigrationContentWriter
         return $created;
     }
 
-    /**
-     * @param array<string, mixed>                    $fields
-     * @param list<array<string, mixed>>              $media
-     * @param array<string, array<string, true>>       $allowedTypes
-     */
     private function containerChildType(
         string $sourceType,
         array $fields,
@@ -492,15 +471,12 @@ final readonly class MigrationContentWriter
         if (isset($allowedTypes[$sourceType])) {
             return $sourceType;
         }
-
         if ([] !== $media && isset($allowedTypes['textpic'])) {
             return 'textpic';
         }
-
         if ([] !== $media && isset($allowedTypes['image'])) {
             return 'image';
         }
-
         if (
             ('' !== trim((string) ($fields['bodytext'] ?? ''))
                 || '' !== trim((string) ($fields['header'] ?? '')))
@@ -559,13 +535,11 @@ final readonly class MigrationContentWriter
             foreach ($element->attributes as $attribute) {
                 $attributes[] = $attribute->name;
             }
-
             foreach ($attributes as $attribute) {
                 if ('href' !== $attribute || 'a' !== strtolower($element->tagName)) {
                     $element->removeAttribute($attribute);
                 }
             }
-
             if ($element->hasAttribute('href')) {
                 $href = trim($element->getAttribute('href'));
 
@@ -587,12 +561,6 @@ final readonly class MigrationContentWriter
         return trim($result);
     }
 
-    /**
-     * @param array<string, mixed>       $fields
-     * @param list<array<string, mixed>> $linkedFiles
-     *
-     * @return array<string, mixed>
-     */
     private function rewriteLinkedDocuments(array $fields, array $linkedFiles): array
     {
         foreach ($linkedFiles as $linkedFile) {
@@ -609,7 +577,6 @@ final readonly class MigrationContentWriter
                 if (!\is_string($value) || '' === $value) {
                     continue;
                 }
-
                 if ($this->linkedDocumentHrefMatches(trim($value), $linkedFile)) {
                     $fields[$field] = $targetHref;
 
@@ -661,7 +628,6 @@ final readonly class MigrationContentWriter
         return $fields;
     }
 
-    /** @param array<string, mixed> $linkedFile */
     private function linkedDocumentHrefMatches(string $href, array $linkedFile): bool
     {
         $href = html_entity_decode(trim($href), \ENT_QUOTES | \ENT_HTML5);
@@ -721,7 +687,6 @@ final readonly class MigrationContentWriter
         return max(0, (int) $maximum) + 256;
     }
 
-    /** @param array<string, mixed> $configuration */
     private function relationSortingField(string $childTable, array $configuration): ?string
     {
         $foreignSorting = $configuration['foreign_sortby'] ?? null;
@@ -747,9 +712,6 @@ final readonly class MigrationContentWriter
         return null;
     }
 
-    /**
-     * @param array<string, int> $sortingByIdentifier
-     */
     private function enforceSorting(
         string $table,
         string $sortingField,

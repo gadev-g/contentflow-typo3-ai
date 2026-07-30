@@ -15,7 +15,6 @@ final class AssetMetadataWriter
     {
     }
 
-    /** @param array<string, string> $metadata */
     public function write(int $fileUid, int $languageId, array $metadata): int
     {
         $query = $this->connectionPool->getQueryBuilderForTable('sys_file_metadata');
@@ -42,7 +41,6 @@ final class AssetMetadataWriter
                 'TYPO3 has no metadata record for the selected file. Re-index the file and try again.',
             );
         }
-
         if ($languageId > 0) {
             return $this->localizedWriter->write('sys_file_metadata', (int) $metadataUid, $languageId, $metadata);
         }

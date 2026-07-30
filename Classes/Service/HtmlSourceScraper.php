@@ -15,7 +15,6 @@ final readonly class HtmlSourceScraper
         private RequestFactory $requestFactory,
         ExtensionConfiguration $extensionConfiguration,
     ) {
-        /** @var array{allowPrivateSourceHosts?: bool|int|string} $configuration */
         $configuration = $extensionConfiguration->get('contentflow_translation');
         $this->allowPrivateHosts = filter_var(
             $configuration['allowPrivateSourceHosts'] ?? false,
@@ -23,7 +22,6 @@ final readonly class HtmlSourceScraper
         );
     }
 
-    /** @return array<string, mixed> */
     public function scrape(string $sourceUrl): array
     {
         $parts = parse_url(trim($sourceUrl));
@@ -51,7 +49,6 @@ final readonly class HtmlSourceScraper
         if ($response->getStatusCode() >= 300 || !str_contains($contentType, 'text/html')) {
             throw new \RuntimeException('The source URL did not return an HTML page.');
         }
-
         if ('' === trim($html) || \strlen($html) > 5_000_000) {
             throw new \RuntimeException('The source HTML is empty or exceeds the 5 MB limit.');
         }
@@ -59,7 +56,6 @@ final readonly class HtmlSourceScraper
         return $this->parse($sourceUrl, $html);
     }
 
-    /** @return array<string, mixed> */
     private function parse(string $sourceUrl, string $html): array
     {
         $document = new \DOMDocument();
@@ -106,8 +102,8 @@ final readonly class HtmlSourceScraper
                         'type' => 'text',
                         'fields' => [
                             'bodytext' => trim(
-                                ($alternative ? '<p>Image: '.htmlspecialchars($alternative).'</p>' : '')
-                                .($caption ? '<p>'.htmlspecialchars($caption).'</p>' : ''),
+                                ($alternative ? '<p>Image: ' . htmlspecialchars($alternative) . '</p>' : '')
+                                . ($caption ? '<p>' . htmlspecialchars($caption) . '</p>' : ''),
                             ),
                         ],
                         'relations' => [],
@@ -138,7 +134,6 @@ final readonly class HtmlSourceScraper
             ];
             $seen[spl_object_id($node)] = true;
         }
-
         if ([] === $elements) {
             throw new \RuntimeException('No editorial content could be detected in the source HTML.');
         }
@@ -151,7 +146,6 @@ final readonly class HtmlSourceScraper
         ];
     }
 
-    /** @param array<int, bool> $seen */
     private function hasSelectedAncestor(\DOMElement $node, array $seen): bool
     {
         $parent = $node->parentNode;
@@ -178,13 +172,14 @@ final readonly class HtmlSourceScraper
         if ([] === $addresses) {
             throw new \RuntimeException('The source host could not be resolved.');
         }
-
         foreach ($addresses as $address) {
-            if (false === filter_var(
-                $address,
-                \FILTER_VALIDATE_IP,
-                \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE,
-            )) {
+            if (
+                false === filter_var(
+                    $address,
+                    \FILTER_VALIDATE_IP,
+                    \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE,
+                )
+            ) {
                 throw new \RuntimeException('Private source hosts are disabled in Extension Configuration.');
             }
         }

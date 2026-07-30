@@ -13,7 +13,7 @@ final class MigrationTokenService
 
     public function generate(string $label): string
     {
-        $plainToken = 'cfmi_'.bin2hex(random_bytes(32));
+        $plainToken = 'cfmi_' . bin2hex(random_bytes(32));
         $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable(self::TABLE);
         $connection->insert(self::TABLE, [
             'pid' => 0,
@@ -36,7 +36,7 @@ final class MigrationTokenService
 
         $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable(self::TABLE);
         $rows = $connection->fetchAllAssociative(
-            'SELECT uid, token_hash FROM '.self::TABLE.' WHERE revoked = 0 AND token_prefix = ?',
+            'SELECT uid, token_hash FROM ' . self::TABLE . ' WHERE revoked = 0 AND token_prefix = ?',
             [substr($plainToken, 0, 13)],
         );
 
@@ -60,14 +60,13 @@ final class MigrationTokenService
             ->update(self::TABLE, ['revoked' => 1], ['uid' => $uid]);
     }
 
-    /** @return list<array<string, mixed>> */
     public function all(): array
     {
         return GeneralUtility::makeInstance(ConnectionPool::class)
             ->getConnectionForTable(self::TABLE)
             ->fetchAllAssociative(
                 'SELECT uid, label, token_prefix, created_at, last_used_at, revoked'
-                .' FROM '.self::TABLE.' ORDER BY created_at DESC',
+                . ' FROM ' . self::TABLE . ' ORDER BY created_at DESC',
             );
     }
 }

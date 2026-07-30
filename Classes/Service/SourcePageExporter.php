@@ -23,13 +23,11 @@ final readonly class SourcePageExporter
         ExtensionConfiguration $extensionConfiguration,
         private FileRepository $fileRepository,
     ) {
-        /** @var array{migrationSigningSecret?: string} $configuration */
         $configuration = $extensionConfiguration->get('contentflow_translation');
         $this->signingSecret = trim((string) ($configuration['migrationSigningSecret'] ?? ''))
             ?: (string) ($GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey'] ?? '');
     }
 
-    /** @return array<string, mixed> */
     public function export(string $sourceUrl, string $baseUrl): array
     {
         $page = $this->resolvePage($sourceUrl);
@@ -81,7 +79,6 @@ final readonly class SourcePageExporter
         ];
     }
 
-    /** @return array<string, mixed> */
     private function resolvePage(string $sourceUrl): array
     {
         $query = [];
@@ -127,7 +124,6 @@ final readonly class SourcePageExporter
         throw new \RuntimeException('No TYPO3 page matches the supplied source URL or speaking URL path.');
     }
 
-    /** @return array<string, mixed>|null */
     private function findVisiblePageByUid(int $pageUid): ?array
     {
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('pages');
@@ -151,7 +147,6 @@ final readonly class SourcePageExporter
         return false === $row ? null : $row;
     }
 
-    /** @return array<string, mixed>|null */
     private function resolveLegacySpeakingUrl(string $path): ?array
     {
         $segments = array_values(array_filter(explode('/', trim($path, '/'))));
@@ -194,7 +189,6 @@ final readonly class SourcePageExporter
         if (1 === \count($rows)) {
             return $rows[0];
         }
-
         foreach ($rows as $row) {
             if ($this->legacyPagePathMatches($row, $segments, $legacyFields)) {
                 return $row;
@@ -204,11 +198,6 @@ final readonly class SourcePageExporter
         return null;
     }
 
-    /**
-     * @param array<string, mixed> $page
-     * @param list<string> $segments
-     * @param list<string> $legacyFields
-     */
     private function legacyPagePathMatches(array $page, array $segments, array $legacyFields): bool
     {
         for ($index = \count($segments) - 1; $index >= 0 && (int) ($page['uid'] ?? 0) > 0; --$index) {
@@ -221,7 +210,6 @@ final readonly class SourcePageExporter
                     break;
                 }
             }
-
             if (!$matches) {
                 return false;
             }
@@ -238,7 +226,6 @@ final readonly class SourcePageExporter
         return true;
     }
 
-    /** @return array<string, mixed> */
     private function exportRecord(string $table, array $row, string $baseUrl, int $depth): array
     {
         if (
@@ -274,7 +261,6 @@ final readonly class SourcePageExporter
         if ($depth >= 5) {
             return $record;
         }
-
         foreach (($GLOBALS['TCA'][$table]['columns'] ?? []) as $field => $column) {
             $configuration = $column['config'] ?? [];
 
@@ -291,7 +277,6 @@ final readonly class SourcePageExporter
                     $depth + 1,
                 );
             }
-
             if (\in_array($configuration['type'] ?? null, ['file', 'inline'], true)) {
                 $record['media'] = array_merge(
                     $record['media'],
@@ -299,7 +284,6 @@ final readonly class SourcePageExporter
                 );
             }
         }
-
         if ('tt_content' === $table) {
             $gridChildren = $this->gridChildren((int) ($row['uid'] ?? 0), $baseUrl, $depth + 1);
 
@@ -311,7 +295,6 @@ final readonly class SourcePageExporter
         return $record;
     }
 
-    /** @return array<string, mixed>|null */
     private function resolveShortcut(array $row): ?array
     {
         $records = $this->shortcutRecords($row);
@@ -319,9 +302,6 @@ final readonly class SourcePageExporter
         return $records[0] ?? null;
     }
 
-    /** @param list<array<string, mixed>> $rows
-     *  @return list<array<string, mixed>>
-     */
     private function exportRecords(array $rows, string $baseUrl, int $depth): array
     {
         $elements = [];
@@ -334,7 +314,6 @@ final readonly class SourcePageExporter
             if ([] === $expandedRows) {
                 $expandedRows = [$row];
             }
-
             foreach ($expandedRows as $expandedRow) {
                 foreach (['colPos', 'sorting', 'tx_gridelements_container', 'tx_gridelements_columns'] as $field) {
                     if (array_key_exists($field, $row)) {
@@ -355,7 +334,6 @@ final readonly class SourcePageExporter
         return $elements;
     }
 
-    /** @return list<array<string, mixed>> */
     private function shortcutRecords(array $row): array
     {
         if (
@@ -404,7 +382,6 @@ final readonly class SourcePageExporter
         return $records;
     }
 
-    /** @return list<array<string, mixed>> */
     private function pageContentRecords(int $pageUid): array
     {
         $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('tt_content');
@@ -439,7 +416,6 @@ final readonly class SourcePageExporter
             ->fetchAllAssociative();
     }
 
-    /** @return list<array<string, mixed>> */
     private function gridChildren(int $parentUid, string $baseUrl, int $depth): array
     {
         if (
@@ -480,7 +456,6 @@ final readonly class SourcePageExporter
             && $connection->createSchemaManager()->introspectTable($table)->hasColumn($column);
     }
 
-    /** @return list<array<string, mixed>> */
     private function inlineChildren(
         string $table,
         string $foreignField,
@@ -512,7 +487,6 @@ final readonly class SourcePageExporter
         );
     }
 
-    /** @return list<array<string, mixed>> */
     private function mediaReferences(string $table, int $uid, string $field, string $baseUrl): array
     {
         try {
@@ -528,24 +502,21 @@ final readonly class SourcePageExporter
             $expires = time() + 3600;
             $signature = hash_hmac('sha256', $file->getUid() . ':' . $expires, $this->signingSecret);
             $media[] = [
-                'source_file_uid' => $file->getUid(),
-                'field' => $field,
-                'name' => $file->getName(),
-                'mime_type' => $file->getMimeType(),
-                'size' => $file->getSize(),
-                'sha256' => hash('sha256', $file->getContents()),
-                'metadata' => $reference->getProperties(),
-                'download_url' => rtrim($baseUrl, '/') . '/contentflow/migration/media/'
-                    . $file->getUid() . '?expires=' . $expires . '&signature=' . $signature,
+            'source_file_uid' => $file->getUid(),
+            'field' => $field,
+            'name' => $file->getName(),
+            'mime_type' => $file->getMimeType(),
+            'size' => $file->getSize(),
+            'sha256' => hash('sha256', $file->getContents()),
+            'metadata' => $reference->getProperties(),
+            'download_url' => rtrim($baseUrl, '/') . '/contentflow/migration/media/'
+                . $file->getUid() . '?expires=' . $expires . '&signature=' . $signature,
             ];
         }
 
         return $media;
     }
 
-    /** @param array<string, string> $fields
-     *  @return list<array<string, mixed>>
-     */
     private function linkedDocuments(array $fields, string $baseUrl): array
     {
         $documents = [];
@@ -595,7 +566,6 @@ final readonly class SourcePageExporter
                 return GeneralUtility::makeInstance(\TYPO3\CMS\Core\Resource\ResourceFactory::class)
                     ->getFileObject((int) $match[1]);
             }
-
             if (preg_match('/^t3:\/\/file\?[^#]*\buid=(\d+)/i', $href, $match)) {
                 return GeneralUtility::makeInstance(\TYPO3\CMS\Core\Resource\ResourceFactory::class)
                     ->getFileObject((int) $match[1]);
@@ -616,7 +586,6 @@ final readonly class SourcePageExporter
         }
     }
 
-    /** @return array<string, string> */
     private function editableFields(string $table, array $row): array
     {
         $fields = [];

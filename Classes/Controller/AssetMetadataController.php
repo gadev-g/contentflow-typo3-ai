@@ -42,7 +42,6 @@ final class AssetMetadataController extends ActionController
                 ContextualFeedbackSeverity::ERROR,
             );
         }
-
         if (true !== ($context['entitlements']['products']['asset_intelligence'] ?? false)) {
             $module->assign('plan', $context['entitlements']['plan'] ?? 'free');
 
@@ -60,10 +59,6 @@ final class AssetMetadataController extends ActionController
         return $module->renderResponse('AssetMetadata/Index');
     }
 
-    /**
-     * @param list<array{id: string}> $providers
-     * @return list<array{id: string, label: string, provider: string}>
-     */
     private function availableModels(array $providers): array
     {
         $models = [];
@@ -123,7 +118,6 @@ final class AssetMetadataController extends ActionController
             if ($fileUid > 0) {
                 $selectedFileUids[] = $fileUid;
             }
-
             if ('' !== trim($folderIdentifier)) {
                 $selectedFileUids = array_merge(
                     $selectedFileUids,
@@ -141,7 +135,6 @@ final class AssetMetadataController extends ActionController
                     'Please select at least one image or a folder containing supported images.',
                 );
             }
-
             if (count($selectedFileUids) > 25) {
                 throw new \RuntimeException('A maximum of 25 images can be analyzed in one batch.');
             }
@@ -214,11 +207,9 @@ final class AssetMetadataController extends ActionController
             if (!$this->client->hasProduct('asset_intelligence')) {
                 throw new \RuntimeException('Asset Intelligence requires the Starter plan or higher.');
             }
-
             if (!is_array($preview) || !isset($preview['createdAt']) || time() - (int) $preview['createdAt'] > 3600) {
                 throw new \RuntimeException('The asset preview expired. Please analyze the image again.');
             }
-
             if (!isset($preview['assets']) || !is_array($preview['assets'])) {
                 throw new \RuntimeException('The asset preview is invalid. Please analyze the images again.');
             }
@@ -237,7 +228,6 @@ final class AssetMetadataController extends ActionController
                 $this->writer->write((int) $asset['fileUid'], (int) $preview['languageId'], $asset['metadata']);
                 ++$savedRecords;
             }
-
             if (0 === $savedRecords) {
                 throw new \RuntimeException('No valid asset metadata was available to save.');
             }
@@ -251,7 +241,6 @@ final class AssetMetadataController extends ActionController
         return $this->redirect('index');
     }
 
-    /** @return list<array{id: int, code: string, title: string}> */
     private function availableLanguages(): array
     {
         $languages = [];

@@ -15,11 +15,6 @@ document.querySelectorAll('.cf-approve-form, .cf-migration-edit-form').forEach((
       button.innerHTML = '<span class="cf-spinner" aria-hidden="true"></span><span>Saving …</span>';
     }
 
-    /*
-     * Keep the submit control enabled while the browser and TYPO3 collect the
-     * successful form controls. Disabling it synchronously from the submit
-     * event can cancel the request in TYPO3 backend module contexts.
-     */
     window.setTimeout(() => {
       button.disabled = true;
     }, 0);

@@ -41,7 +41,6 @@ final class SeoController extends ActionController
                 ContextualFeedbackSeverity::ERROR,
             );
         }
-
         if (true !== ($context['entitlements']['products']['seo_intelligence'] ?? false)) {
             $module->assign('plan', $context['entitlements']['plan'] ?? 'free');
 
@@ -63,7 +62,6 @@ final class SeoController extends ActionController
             if (!$this->client->hasProduct('seo_intelligence')) {
                 throw new \RuntimeException('SEO Intelligence requires the Starter plan or higher.');
             }
-
             if ($uid <= 0) {
                 throw new \RuntimeException('Please select a TYPO3 page.');
             }
@@ -89,7 +87,7 @@ final class SeoController extends ActionController
             $schemaOrgFormatted = $this->encodeSchemaOrg($metadata['schema_org'] ?? []);
             $token = bin2hex(random_bytes(24));
 
-            $this->backendUser()->setAndSaveSessionData('contentflow_seo_'.$token, [
+            $this->backendUser()->setAndSaveSessionData('contentflow_seo_' . $token, [
                 'pageUid' => $uid,
                 'metadata' => $metadata,
                 'createdAt' => time(),
@@ -121,7 +119,7 @@ final class SeoController extends ActionController
                 throw new \RuntimeException('SEO Intelligence requires the Starter plan or higher.');
             }
 
-            $sessionKey = 'contentflow_seo_'.$previewToken;
+            $sessionKey = 'contentflow_seo_' . $previewToken;
             $preview = $this->backendUser()->getSessionData($sessionKey);
 
             if (
@@ -152,7 +150,6 @@ final class SeoController extends ActionController
         return $this->redirect('index');
     }
 
-    /** @param array<string, string> $pageFields */
     private function pageContent(int $pageUid, array $pageFields): string
     {
         $parts = array_values($pageFields);

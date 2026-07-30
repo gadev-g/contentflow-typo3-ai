@@ -32,21 +32,6 @@ final readonly class TargetContentSchema
     ) {
     }
 
-    /**
-     * @return list<array{
-     *     type: string,
-     *     label: string,
-     *     fields: list<string>,
-     *     field_labels: array<string, string>,
-     *     field_options: array<string, array<string, string>>,
-     *     field_defaults: array<string, string>,
-     *     relations: array<string, array{
-     *         table: string,
-     *         fields: list<string>,
-     *         media_fields: list<string>
-     *     }>
-     * }>
-     */
     public function availableTypes(
         int $targetPageUid = 0,
         ?ServerRequestInterface $request = null,
@@ -80,7 +65,6 @@ final readonly class TargetContentSchema
                 'relations' => $relations,
             ];
         }
-
         if ([] === $types) {
             return [[
                 'type' => 'text',
@@ -102,13 +86,6 @@ final readonly class TargetContentSchema
         return $types;
     }
 
-    /**
-     * @return array<string, array{
-     *     table: string,
-     *     fields: list<string>,
-     *     media_fields: list<string>
-     * }>
-     */
     private function editableRelations(string $type, array $processedColumns): array
     {
         $showItem = (string) ($GLOBALS['TCA']['tt_content']['types'][$type]['showitem'] ?? '');
@@ -143,7 +120,6 @@ final readonly class TargetContentSchema
                 if (\in_array($childFieldType, ['input', 'text', 'link'], true)) {
                     $childFields[] = (string) $childField;
                 }
-
                 if (
                     'file' === $childFieldType
                     || (
@@ -154,7 +130,6 @@ final readonly class TargetContentSchema
                     $mediaFields[] = (string) $childField;
                 }
             }
-
             if ([] === $childFields && [] === $mediaFields) {
                 continue;
             }
@@ -169,7 +144,6 @@ final readonly class TargetContentSchema
         return $relations;
     }
 
-    /** @return list<string> */
     private function editableFields(string $type, array $processedColumns): array
     {
         $showItem = (string) ($GLOBALS['TCA']['tt_content']['types'][$type]['showitem'] ?? '');
@@ -201,11 +175,6 @@ final readonly class TargetContentSchema
         return array_values(array_unique($fields));
     }
 
-    /**
-     * @param list<string> $fields
-     *
-     * @return array<string, array<string, string>>
-     */
     private function fieldOptions(array $fields, array $processedColumns): array
     {
         $options = [];
@@ -223,11 +192,9 @@ final readonly class TargetContentSchema
 
                 continue;
             }
-
             if ('select' !== ($configuration['type'] ?? null)) {
                 continue;
             }
-
             foreach (\is_array($configuration['items'] ?? null) ? $configuration['items'] : [] as $item) {
                 $value = $this->itemValue($item);
 
@@ -242,11 +209,6 @@ final readonly class TargetContentSchema
         return $options;
     }
 
-    /**
-     * @param array<string, array<string, string>> $fieldOptions
-     *
-     * @return array<string, string>
-     */
     private function fieldDefaults(array $fieldOptions): array
     {
         $defaults = [];
@@ -254,7 +216,6 @@ final readonly class TargetContentSchema
         if (isset($fieldOptions['frame_class']['container'])) {
             $defaults['frame_class'] = 'container';
         }
-
         foreach (['space_before_class', 'space_after_class'] as $spacingField) {
             $firstSpacing = array_key_first($fieldOptions[$spacingField] ?? []);
 
@@ -266,11 +227,6 @@ final readonly class TargetContentSchema
         return $defaults;
     }
 
-    /**
-     * @param list<string> $fields
-     *
-     * @return array<string, string>
-     */
     private function fieldLabels(array $fields, array $processedColumns): array
     {
         $labels = [];
@@ -289,12 +245,6 @@ final readonly class TargetContentSchema
         return $labels;
     }
 
-    /**
-     * Resolve the target instance's fully processed TCA, including Page TSconfig
-     * additions, removals and labels for select items.
-     *
-     * @return array<string, array<string, mixed>>
-     */
     private function processedColumns(
         string $type,
         int $targetPageUid,
@@ -303,7 +253,6 @@ final readonly class TargetContentSchema
         if ($targetPageUid <= 0 || null === $request) {
             return [];
         }
-
         try {
             $formData = $this->formDataCompiler->compile(
                 [
@@ -329,7 +278,6 @@ final readonly class TargetContentSchema
         return \is_array($columns) ? $columns : [];
     }
 
-    /** @return list<string> */
     private function expandedFieldDefinitions(string $showItem): array
     {
         $definitions = [];

@@ -62,7 +62,6 @@ final class MigrationController extends ActionController
                 ContextualFeedbackSeverity::ERROR,
             );
         }
-
         if (true !== ($context['entitlements']['products']['content_migration'] ?? false)) {
             $module->assignMultiple([
                 'plan' => $context['entitlements']['plan'] ?? 'free',
@@ -102,15 +101,12 @@ final class MigrationController extends ActionController
             if (!$this->client->hasProduct('content_migration')) {
                 throw new \RuntimeException('Content Migration requires the Starter plan or higher.');
             }
-
             if ($targetPageUid <= 0) {
                 throw new \RuntimeException('Please select a target TYPO3 page.');
             }
-
             if (!\in_array($sourceMode, ['connector', 'html'], true)) {
                 throw new \RuntimeException('Select a valid source method.');
             }
-
             if (
                 'connector' === $sourceMode
                 && '' === trim($migrationToken)
@@ -118,11 +114,9 @@ final class MigrationController extends ActionController
             ) {
                 throw new \RuntimeException('Enter the migration token from the source TYPO3 installation.');
             }
-
             if ('connector' === $sourceMode && $saveMigrationToken && '' !== trim($migrationToken)) {
                 $this->setConfiguredSourceToken(trim($migrationToken));
             }
-
             if ($savePatternPage) {
                 $this->setConfiguredPatternPageUid($patternPageUid);
             } elseif ($patternPageUid <= 0) {
@@ -215,7 +209,6 @@ final class MigrationController extends ActionController
                         $patternsByType[$typeName][$referencePattern['id']] = $referencePattern;
                     }
                 }
-
                 foreach (
                     \is_array($targetType['catalog_patterns'] ?? null)
                         ? $targetType['catalog_patterns']
@@ -361,7 +354,6 @@ final class MigrationController extends ActionController
         }
     }
 
-    /** @param array<int|string, mixed> $items */
     public function applyAction(string $previewToken, array $items = []): ResponseInterface
     {
         $sessionKey = 'contentflow_migration_' . $previewToken;
@@ -422,7 +414,6 @@ final class MigrationController extends ActionController
                         ['message' => $exception->getMessage()],
                     );
                 } catch (\Throwable) {
-                    // The original persistence error remains the actionable failure.
                 }
             }
 
@@ -462,18 +453,12 @@ final class MigrationController extends ActionController
         $this->addFlashMessage('The saved default source migration token was removed.', 'Migration token removed',);
         return $this->redirect('index');
     }
-    /**
-     * @param list<array<string, mixed>> $storedItems
-     * @param array<int|string, mixed>   $submittedItems
-     *
-     * @return list<array<string, mixed>>
-     */
+
     private function mergeSubmittedItems(
         array $storedItems,
         array $submittedItems,
         array $targetTypes = [],
-    ): array
-    {
+    ): array {
         $merged = [];
         $typesByName = [];
         $patternsById = [];
@@ -496,7 +481,6 @@ final class MigrationController extends ActionController
                 }
             }
         }
-
         foreach ($storedItems as $index => $stored) {
             $submitted = \is_array($submittedItems[$index] ?? null) ? $submittedItems[$index] : [];
 
@@ -521,7 +505,6 @@ final class MigrationController extends ActionController
                     $submitted['fields'],
                 );
             }
-
             if ([] !== $selectedPattern) {
                 $stored = $this->applySelectedPattern(
                     $stored,
@@ -546,12 +529,6 @@ final class MigrationController extends ActionController
         return $merged;
     }
 
-    /**
-     * @param array<string, mixed> $item
-     * @param array<string, mixed> $targetType
-     *
-     * @return array<string, mixed>
-     */
     private function applySelectedTypePattern(array $item, array $targetType): array
     {
         $patterns = array_merge(
@@ -584,12 +561,6 @@ final class MigrationController extends ActionController
         return $item;
     }
 
-    /**
-     * @param array<string, mixed> $item
-     * @param array<string, mixed> $pattern
-     *
-     * @return array<string, mixed>
-     */
     private function applySelectedPattern(array $item, array $pattern, string $patternId): array
     {
         $patternFields = array_merge(
@@ -609,16 +580,6 @@ final class MigrationController extends ActionController
         return $this->applyContainerPattern($item, $pattern);
     }
 
-    /**
-     * A pattern page can contain several records using the same CType with
-     * different variants. Each record must therefore remain independently
-     * selectable and is labelled with its editorial heading.
-     *
-     * @param list<array<string, mixed>> $targetTypes
-     * @param list<array<string, mixed>> $items
-     *
-     * @return list<array{value: string, label: string}>
-     */
     private function alternativeLayouts(
         array $targetTypes,
         array $items,
@@ -665,7 +626,6 @@ final class MigrationController extends ActionController
                 $knownPatterns[$patternId] = true;
             }
         }
-
         foreach ($items as $item) {
             $patternId = (string) ($item['catalog_pattern_id'] ?? '');
 
@@ -695,19 +655,6 @@ final class MigrationController extends ActionController
         ));
     }
 
-    /**
-     * @param array<string, mixed> $targetType
-     * @param array<string, mixed> $values
-     *
-     * @return list<array{
-     *     name: string,
-     *     label: string,
-     *     value: string,
-     *     options: array<string, string>,
-     *     is_select: bool,
-     *     is_quick_setting: bool
-     * }>
-     */
     private function fieldDefinitions(array $targetType, array $values): array
     {
         $fields = \is_array($targetType['fields'] ?? null) ? $targetType['fields'] : [];
@@ -750,21 +697,12 @@ final class MigrationController extends ActionController
         return $definitions;
     }
 
-    /**
-     * @param array<string, mixed> $item
-     * @param array<string, array<string, mixed>> $patternsById
-     * @param array<string, array<string, array<string, mixed>>> $patternsByType
-     * @param array<string, array<string, array<string, mixed>>> $catalogPatternsByType
-     *
-     * @return array<string, mixed>
-     */
     private function applyPatternAppearance(
         array $item,
         array $patternsById,
         array $patternsByType,
         array $catalogPatternsByType = [],
-    ): array
-    {
+    ): array {
         $structuralPattern = '' === (string) ($item['reference_pattern_id'] ?? '')
             ? $this->matchingCatalogPattern($item, $catalogPatternsByType)
             : [];
@@ -796,7 +734,6 @@ final class MigrationController extends ActionController
                 $item['catalog_pattern_id'] = (string) ($pattern['id'] ?? '');
             }
         }
-
         if ([] === $pattern) {
             $typePatterns = \is_array($patternsByType[(string) ($item['target_type'] ?? '')] ?? null)
                 ? array_values($patternsByType[(string) ($item['target_type'] ?? '')])
@@ -806,7 +743,6 @@ final class MigrationController extends ActionController
                 $pattern = $typePatterns[0];
             }
         }
-
         if ([] === $pattern) {
             return $item;
         }
@@ -831,12 +767,6 @@ final class MigrationController extends ActionController
         return $item;
     }
 
-    /**
-     * @param array<string, mixed> $item
-     * @param array<string, array<string, array<string, mixed>>> $catalogPatternsByType
-     *
-     * @return array{type: string, pattern: array<string, mixed>}|array{}
-     */
     private function matchingCatalogPattern(array $item, array $catalogPatternsByType): array
     {
         $sourceRecord = \is_array($item['source_record'] ?? null) ? $item['source_record'] : [];
@@ -863,7 +793,6 @@ final class MigrationController extends ActionController
                 ];
             }
         }
-
         if ([] === $matches) {
             return [];
         }
@@ -882,7 +811,6 @@ final class MigrationController extends ActionController
         ];
     }
 
-    /** @param array<string, mixed> $pattern */
     private function patternSlotCount(array $pattern): int
     {
         $columns = \is_array($pattern['container_columns'] ?? null)
@@ -903,18 +831,6 @@ final class MigrationController extends ActionController
         return [] !== $relationCounts ? max($relationCounts) : 0;
     }
 
-    /**
-     * Consecutive source rows with the same structural type can represent one
-     * visual component. Group the largest sequence that exactly fits a pattern
-     * from the curated library, for example two 2-column rows into one
-     * 4-column teaser.
-     *
-     * @param list<array<string, mixed>> $items
-     * @param list<array<string, mixed>> $elements
-     * @param array<string, array<string, array<string, mixed>>> $catalogPatternsByType
-     *
-     * @return list<array<string, mixed>>
-     */
     private function groupAdjacentStructuralItems(
         array $items,
         array $elements,
@@ -962,16 +878,17 @@ final class MigrationController extends ActionController
                     $candidateSlotCount += $nextSlotCount;
                     $candidateIndices = array_merge($candidateIndices, $nextSourceIndices);
 
-                    if ($this->hasPatternWithSlotCount(
-                        $catalogPatternsByType[$targetType] ?? [],
-                        $candidateSlotCount,
-                    )) {
+                    if (
+                        $this->hasPatternWithSlotCount(
+                            $catalogPatternsByType[$targetType] ?? [],
+                            $candidateSlotCount,
+                        )
+                    ) {
                         $bestEnd = $candidateIndex;
                         $bestSourceIndices = $candidateIndices;
                     }
                 }
             }
-
             if ($bestEnd > $index) {
                 $item['source_index'] = (int) ($bestSourceIndices[0] ?? -1);
                 $item['source_indices'] = array_values(array_unique($bestSourceIndices));
@@ -987,11 +904,6 @@ final class MigrationController extends ActionController
         return $grouped;
     }
 
-    /**
-     * @param array<string, mixed> $item
-     *
-     * @return list<int>
-     */
     private function sourceIndices(array $item): array
     {
         $indices = \is_array($item['source_indices'] ?? null)
@@ -1004,7 +916,6 @@ final class MigrationController extends ActionController
         ));
     }
 
-    /** @param array<string, mixed> $sourceRecord */
     private function sourceSlotCount(array $sourceRecord): int
     {
         $relations = \is_array($sourceRecord['relations'] ?? null)
@@ -1033,7 +944,6 @@ final class MigrationController extends ActionController
         return $slotCount;
     }
 
-    /** @param array<string, array<string, mixed>> $patterns */
     private function maximumPatternSlotCount(array $patterns): int
     {
         $maximum = 0;
@@ -1047,7 +957,6 @@ final class MigrationController extends ActionController
         return $maximum;
     }
 
-    /** @param array<string, array<string, mixed>> $patterns */
     private function hasPatternWithSlotCount(array $patterns, int $slotCount): bool
     {
         foreach ($patterns as $pattern) {
@@ -1059,11 +968,6 @@ final class MigrationController extends ActionController
         return false;
     }
 
-    /**
-     * @param list<array<string, mixed>> $items
-     *
-     * @return array<string, list<array<string, mixed>>>
-     */
     private function mergePlannedRelations(array $items): array
     {
         $relations = [];
@@ -1079,12 +983,6 @@ final class MigrationController extends ActionController
         return $relations;
     }
 
-    /**
-     * @param array<string, mixed> $item
-     * @param array<string, mixed> $pattern
-     *
-     * @return array<string, mixed>
-     */
     private function applyContainerPattern(array $item, array $pattern): array
     {
         $item['container_columns'] = \is_array($pattern['container_columns'] ?? null)
@@ -1104,12 +1002,6 @@ final class MigrationController extends ActionController
         return $item;
     }
 
-    /**
-     * @param list<array<string, mixed>> $elements
-     * @param array<string, mixed>       $source
-     *
-     * @return list<array<string, mixed>>
-     */
     private function prependSourceTitle(array $elements, string $sourceTitle, array $source): array
     {
         $sourceUrl = \is_scalar($source['url'] ?? null) ? (string) $source['url'] : '';
@@ -1137,7 +1029,6 @@ final class MigrationController extends ActionController
         return $elements;
     }
 
-    /** @param list<array<string, mixed>> $elements */
     private function containsSourceTitle(array $elements, string $sourceTitle): bool
     {
         $normalizedTitle = $this->normalizeEditorialText($sourceTitle);
@@ -1158,12 +1049,6 @@ final class MigrationController extends ActionController
         return false;
     }
 
-    /**
-     * @param list<array<string, mixed>> $elements
-     * @param list<mixed>                $sourceIndices
-     *
-     * @return array<string, mixed>
-     */
     private function combinedSourceRecord(array $elements, array $sourceIndices): array
     {
         $combined = [];
@@ -1180,23 +1065,19 @@ final class MigrationController extends ActionController
             if ([] === $record) {
                 continue;
             }
-
             if ([] === $combined) {
                 $combined = $record;
             }
-
             foreach (\is_array($record['media'] ?? null) ? $record['media'] : [] as $mediaItem) {
                 if (\is_array($mediaItem)) {
                     $media[] = $mediaItem;
                 }
             }
-
             foreach (\is_array($record['linked_files'] ?? null) ? $record['linked_files'] : [] as $linkedFile) {
                 if (\is_array($linkedFile)) {
                     $linkedFiles[] = $linkedFile;
                 }
             }
-
             foreach (\is_array($record['relations'] ?? null) ? $record['relations'] : [] as $field => $children) {
                 if (\is_string($field) && \is_array($children)) {
                     $relations[$field] = array_merge($relations[$field] ?? [], $children);
@@ -1225,7 +1106,6 @@ final class MigrationController extends ActionController
 
     private function setConfiguredSourceToken(string $token): void
     {
-        /** @var array<string, mixed> $configuration */
         $configuration = $this->extensionConfiguration->get('contentflow_translation');
         $configuration['migrationSourceToken'] = $token;
         $this->extensionConfiguration->set('contentflow_translation', $configuration);
@@ -1233,7 +1113,6 @@ final class MigrationController extends ActionController
 
     private function configuredPatternPageUid(): int
     {
-        /** @var array<string, mixed> $configuration */
         $configuration = $this->extensionConfiguration->get('contentflow_translation');
 
         return max(0, (int) ($configuration['migrationPatternPageUid'] ?? 0));
@@ -1241,7 +1120,6 @@ final class MigrationController extends ActionController
 
     private function setConfiguredPatternPageUid(int $pageUid): void
     {
-        /** @var array<string, mixed> $configuration */
         $configuration = $this->extensionConfiguration->get('contentflow_translation');
         $configuration['migrationPatternPageUid'] = max(0, $pageUid);
         $this->extensionConfiguration->set('contentflow_translation', $configuration);
@@ -1249,7 +1127,6 @@ final class MigrationController extends ActionController
 
     private function configuredClearTargetPage(): bool
     {
-        /** @var array<string, mixed> $configuration */
         $configuration = $this->extensionConfiguration->get('contentflow_translation');
 
         return filter_var(
@@ -1260,7 +1137,6 @@ final class MigrationController extends ActionController
 
     private function setConfiguredClearTargetPage(bool $clearTargetPage): void
     {
-        /** @var array<string, mixed> $configuration */
         $configuration = $this->extensionConfiguration->get('contentflow_translation');
         $configuration['migrationClearTargetPage'] = $clearTargetPage ? '1' : '0';
         $this->extensionConfiguration->set('contentflow_translation', $configuration);

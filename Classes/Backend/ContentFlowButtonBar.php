@@ -57,8 +57,8 @@ final readonly class ContentFlowButtonBar
             foreach ($languages as $language) {
                 $dropDown->addItem(
                     (new DropDownItem())
-                        ->setLabel('Translate to '.$language['title'])
-                        ->setTitle('Open a translation preview for '.$language['title'])
+                        ->setLabel('Translate to ' . $language['title'])
+                        ->setTitle('Open a translation preview for ' . $language['title'])
                         ->setIcon($this->iconFactory->getIcon('actions-localize', IconSize::SMALL))
                         ->setHref($this->moduleUri(
                             'contentflow_translation.Translation_index',
@@ -88,7 +88,6 @@ final readonly class ContentFlowButtonBar
         return 'edit' === ($edit[$uid] ?? null) ? (int) $uid : 0;
     }
 
-    /** @return list<array{code: string, title: string}> */
     private function targetLanguages(int $pageUid): array
     {
         try {
@@ -105,15 +104,14 @@ final readonly class ContentFlowButtonBar
             }
 
             $languages[] = [
-                'code' => $language->getLocale()->getLanguageCode(),
-                'title' => $language->getTitle(),
+            'code' => $language->getLocale()->getLanguageCode(),
+            'title' => $language->getTitle(),
             ];
         }
 
         return $languages;
     }
 
-    /** @param array<string, string> $arguments */
     private function moduleUri(string $route, int $pageUid, array $arguments = []): string
     {
         return (string) $this->uriBuilder->buildUriFromRoute($route, [

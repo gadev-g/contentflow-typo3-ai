@@ -14,6 +14,16 @@ const initializeMigrationFields = () => {
     }
 
     const schemas = new Map(targetTypes.map((targetType) => [targetType.type, targetType]));
+    const patterns = new Map();
+
+    targetTypes.forEach((targetType) => {
+        (targetType.catalog_patterns || []).forEach((pattern) => {
+            patterns.set(pattern.id, {
+                ...pattern,
+                targetType: targetType.type,
+            });
+        });
+    });
     const quickFields = new Set([
         'header_layout',
         'header_size',
@@ -25,22 +35,26 @@ const initializeMigrationFields = () => {
 
     document.querySelectorAll('[data-contentflow-migration-item]').forEach((item) => {
         const itemIndex = item.dataset.contentflowMigrationItem;
-        const typeSelect = item.querySelector('.cf-migration-target-type');
+        const layoutSelect = item.querySelector('.cf-migration-layout-choice');
+        const typeInput = item.querySelector('.cf-migration-target-type');
         const quickFieldsContainer = item.querySelector('[data-contentflow-migration-quick-fields]');
         const advancedFieldsContainer = item.querySelector('[data-contentflow-migration-advanced-fields]');
-        const valuesByType = new Map();
+        const valuesByLayout = new Map();
+        let activeLayout = '';
         let activeType = '';
 
-        if (!itemIndex
-            || !(typeSelect instanceof HTMLSelectElement)
+        if (undefined === itemIndex
+            || !(layoutSelect instanceof HTMLSelectElement)
+            || !(typeInput instanceof HTMLInputElement)
             || !quickFieldsContainer
             || !advancedFieldsContainer) {
             return;
         }
 
-        activeType = typeSelect.value;
+        activeLayout = layoutSelect.value;
+        activeType = typeInput.value;
 
-        const collectValues = (type) => {
+        const collectValues = (layout) => {
             const values = {};
 
             item.querySelectorAll('[name]').forEach((field) => {
@@ -57,12 +71,17 @@ const initializeMigrationFields = () => {
                 }
             });
 
-            valuesByType.set(type, values);
+            valuesByLayout.set(layout, values);
         };
 
         const renderFields = () => {
-            const schema = schemas.get(typeSelect.value);
-            const values = valuesByType.get(typeSelect.value) || {};
+            const pattern = patterns.get(layoutSelect.value);
+            const schema = schemas.get(typeInput.value);
+            const patternValues = {
+                ...(pattern?.field_values || {}),
+                ...(pattern?.option_values || {}),
+            };
+            const values = valuesByLayout.get(layoutSelect.value) || patternValues;
             quickFieldsContainer.replaceChildren();
             advancedFieldsContainer.replaceChildren();
 
@@ -76,7 +95,7 @@ const initializeMigrationFields = () => {
                 const technicalName = document.createElement('small');
                 const options = schema.field_options?.[fieldName];
                 const defaultValue = schema.field_defaults?.[fieldName];
-                const inputName = typeSelect.name.replace(
+                const inputName = typeInput.name.replace(
                     /\[target_type]$/,
                     `[fields][${fieldName}]`,
                 );
@@ -117,10 +136,14 @@ const initializeMigrationFields = () => {
             });
         };
 
-        collectValues(activeType);
-        typeSelect.addEventListener('change', () => {
-            collectValues(activeType);
-            activeType = typeSelect.value;
+        collectValues(activeLayout);
+        layoutSelect.addEventListener('change', () => {
+            collectValues(activeLayout);
+            activeLayout = layoutSelect.value;
+            activeType = activeLayout.startsWith('type:')
+                ? activeLayout.substring(5)
+                : (patterns.get(activeLayout)?.targetType || activeType);
+            typeInput.value = activeType;
             renderFields();
         });
     });

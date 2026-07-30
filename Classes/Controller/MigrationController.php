@@ -238,6 +238,11 @@ final class MigrationController extends ActionController
 
             foreach ($items as $itemIndex => &$item) {
                 if (\is_array($item)) {
+                    $sourceIndex = (int) ($item['source_index'] ?? -1);
+                    $sourceIndices = \is_array($item['source_indices'] ?? null)
+                        ? $item['source_indices']
+                        : [$sourceIndex];
+                    $item['source_record'] = $this->combinedSourceRecord($elements, $sourceIndices);
                     $item = $this->applyPatternAppearance(
                         $item,
                         $patternsById,
@@ -252,6 +257,9 @@ final class MigrationController extends ActionController
                     $item['catalog_pattern_label'] = $catalogPatternLabels[
                         (string) ($item['catalog_pattern_id'] ?? '')
                     ] ?? '';
+                    $item['selected_layout'] = '' !== (string) ($item['catalog_pattern_id'] ?? '')
+                        ? (string) $item['catalog_pattern_id']
+                        : 'type:' . (string) ($item['target_type'] ?? '');
                     $referencePatternId = (string) ($item['reference_pattern_id'] ?? '');
 
                     if ('' !== $referencePatternId) {
@@ -267,11 +275,6 @@ final class MigrationController extends ActionController
                         ++$outsideReferenceCount;
                     }
 
-                    $sourceIndex = (int) ($item['source_index'] ?? -1);
-                    $sourceIndices = \is_array($item['source_indices'] ?? null)
-                        ? $item['source_indices']
-                        : [$sourceIndex];
-                    $item['source_record'] = $this->combinedSourceRecord($elements, $sourceIndices);
                     $item['relations'] = \is_array($item['relations'] ?? null) ? $item['relations'] : [];
                     $item['enabled'] = !$isOutsideReference;
                     $item['order'] = $itemIndex;
@@ -284,7 +287,7 @@ final class MigrationController extends ActionController
 
             unset($item);
 
-            $alternativeTargetTypes = $this->alternativeTargetTypes(
+            $alternativeLayouts = $this->alternativeLayouts(
                 $targetTypes,
                 $items,
                 $patternPageUid,
@@ -333,7 +336,7 @@ final class MigrationController extends ActionController
                 'outsideReferenceCount' => $outsideReferenceCount,
                 'items' => $items,
                 'targetTypes' => $targetTypes,
-                'alternativeTargetTypes' => $alternativeTargetTypes,
+                'alternativeLayouts' => $alternativeLayouts,
                 'targetTypeSchemaJson' => $targetTypeSchemaJson,
                 'previewToken' => $token,
                 'meta' => $result['meta'] ?? [],
@@ -467,10 +470,24 @@ final class MigrationController extends ActionController
     {
         $merged = [];
         $typesByName = [];
+        $patternsById = [];
 
         foreach ($targetTypes as $targetType) {
             if (\is_array($targetType) && \is_string($targetType['type'] ?? null)) {
                 $typesByName[$targetType['type']] = $targetType;
+
+                foreach (
+                    \is_array($targetType['catalog_patterns'] ?? null)
+                        ? $targetType['catalog_patterns']
+                        : [] as $pattern
+                ) {
+                    if (\is_array($pattern) && \is_string($pattern['id'] ?? null)) {
+                        $patternsById[$pattern['id']] = [
+                            'type' => $targetType['type'],
+                            'pattern' => $pattern,
+                        ];
+                    }
+                }
             }
         }
 
@@ -482,7 +499,14 @@ final class MigrationController extends ActionController
             }
 
             $previousTargetType = (string) ($stored['target_type'] ?? '');
-            $stored['target_type'] = (string) ($submitted['target_type'] ?? $previousTargetType);
+            $previousPatternId = (string) ($stored['catalog_pattern_id'] ?? '');
+            $selectedPatternId = (string) ($submitted['pattern_id'] ?? '');
+            $selectedPattern = \is_array($patternsById[$selectedPatternId] ?? null)
+                ? $patternsById[$selectedPatternId]
+                : [];
+            $stored['target_type'] = \is_string($selectedPattern['type'] ?? null)
+                ? $selectedPattern['type']
+                : (string) ($submitted['target_type'] ?? $previousTargetType);
             $stored['order'] = (int) ($submitted['order'] ?? $index);
 
             if (\is_array($submitted['fields'] ?? null)) {
@@ -492,7 +516,16 @@ final class MigrationController extends ActionController
                 );
             }
 
-            if ($stored['target_type'] !== $previousTargetType) {
+            if ([] !== $selectedPattern) {
+                $stored = $this->applySelectedPattern(
+                    $stored,
+                    $selectedPattern['pattern'],
+                    $selectedPatternId,
+                );
+            } elseif (
+                $stored['target_type'] !== $previousTargetType
+                || $selectedPatternId !== $previousPatternId
+            ) {
                 $stored = $this->applySelectedTypePattern(
                     $stored,
                     $typesByName[$stored['target_type']] ?? [],
@@ -546,60 +579,114 @@ final class MigrationController extends ActionController
     }
 
     /**
-     * A configured pattern page is the editor's curated layout catalogue.
-     * Therefore the preview selector offers its CTypes instead of every CType
-     * installed in the target project. Current AI selections remain available
-     * as a safety net when an older preview contains a non-catalogue type.
+     * @param array<string, mixed> $item
+     * @param array<string, mixed> $pattern
+     *
+     * @return array<string, mixed>
+     */
+    private function applySelectedPattern(array $item, array $pattern, string $patternId): array
+    {
+        $patternFields = array_merge(
+            \is_array($pattern['field_values'] ?? null) ? $pattern['field_values'] : [],
+            \is_array($pattern['option_values'] ?? null) ? $pattern['option_values'] : [],
+        );
+
+        foreach (self::APPEARANCE_FIELDS as $field) {
+            if (\is_scalar($patternFields[$field] ?? null)) {
+                $item['fields'][$field] = (string) $patternFields[$field];
+            }
+        }
+
+        $item['reference_pattern_id'] = '';
+        $item['catalog_pattern_id'] = $patternId;
+
+        return $this->applyContainerPattern($item, $pattern);
+    }
+
+    /**
+     * A pattern page can contain several records using the same CType with
+     * different variants. Each record must therefore remain independently
+     * selectable and is labelled with its editorial heading.
      *
      * @param list<array<string, mixed>> $targetTypes
      * @param list<array<string, mixed>> $items
      *
-     * @return list<array<string, mixed>>
+     * @return list<array{value: string, label: string}>
      */
-    private function alternativeTargetTypes(
+    private function alternativeLayouts(
         array $targetTypes,
         array $items,
         int $patternPageUid,
     ): array {
         if ($patternPageUid <= 0) {
-            return $targetTypes;
+            return array_values(array_map(
+                static fn (array $targetType): array => [
+                    'value' => 'type:' . (string) ($targetType['type'] ?? ''),
+                    'label' => (string) ($targetType['label'] ?? $targetType['type'] ?? ''),
+                ],
+                $targetTypes,
+            ));
         }
 
-        $selectedTypes = [];
+        $alternatives = [];
+        $knownPatterns = [];
 
-        foreach ($items as $item) {
-            $type = \is_string($item['target_type'] ?? null) ? $item['target_type'] : '';
+        foreach ($targetTypes as $targetType) {
+            $type = (string) ($targetType['type'] ?? '');
+            $typeLabel = (string) ($targetType['label'] ?? $type);
+            $patterns = \is_array($targetType['catalog_patterns'] ?? null)
+                ? $targetType['catalog_patterns']
+                : [];
 
-            if ('' !== $type) {
-                $selectedTypes[$type] = true;
+            foreach ($patterns as $pattern) {
+                if (!\is_array($pattern) || !\is_string($pattern['id'] ?? null)) {
+                    continue;
+                }
+
+                $patternId = $pattern['id'];
+                $fields = \is_array($pattern['field_values'] ?? null)
+                    ? $pattern['field_values']
+                    : [];
+                $heading = trim(strip_tags((string) ($fields['header'] ?? '')));
+                $label = '' !== $heading
+                    ? mb_substr($heading, 0, 100) . ' — ' . $typeLabel
+                    : (string) ($pattern['label'] ?? $typeLabel);
+                $alternatives[] = [
+                    'value' => $patternId,
+                    'label' => $label,
+                    'position' => (int) ($pattern['position'] ?? \PHP_INT_MAX),
+                ];
+                $knownPatterns[$patternId] = true;
             }
         }
 
-        $alternatives = array_values(array_filter(
-            $targetTypes,
-            static function (array $targetType) use ($selectedTypes): bool {
-                $type = \is_string($targetType['type'] ?? null) ? $targetType['type'] : '';
-                $patterns = \is_array($targetType['catalog_patterns'] ?? null)
-                    ? $targetType['catalog_patterns']
-                    : [];
+        foreach ($items as $item) {
+            $patternId = (string) ($item['catalog_pattern_id'] ?? '');
 
-                return [] !== $patterns || isset($selectedTypes[$type]);
-            },
+            if ('' !== $patternId && isset($knownPatterns[$patternId])) {
+                continue;
+            }
+
+            $type = (string) ($item['target_type'] ?? '');
+            $alternatives[] = [
+                'value' => 'type:' . $type,
+                'label' => (string) ($item['target_label'] ?? $type),
+                'position' => \PHP_INT_MAX,
+            ];
+        }
+
+        usort(
+            $alternatives,
+            static fn (array $left, array $right): int => $left['position'] <=> $right['position'],
+        );
+
+        return array_values(array_map(
+            static fn (array $alternative): array => [
+                'value' => $alternative['value'],
+                'label' => $alternative['label'],
+            ],
+            $alternatives,
         ));
-        usort($alternatives, static function (array $left, array $right): int {
-            $leftPatterns = \is_array($left['catalog_patterns'] ?? null)
-                ? $left['catalog_patterns']
-                : [];
-            $rightPatterns = \is_array($right['catalog_patterns'] ?? null)
-                ? $right['catalog_patterns']
-                : [];
-            $leftPosition = (int) ($leftPatterns[0]['position'] ?? \PHP_INT_MAX);
-            $rightPosition = (int) ($rightPatterns[0]['position'] ?? \PHP_INT_MAX);
-
-            return $leftPosition <=> $rightPosition;
-        });
-
-        return [] !== $alternatives ? $alternatives : $targetTypes;
     }
 
     /**
@@ -672,6 +759,17 @@ final class MigrationController extends ActionController
         array $catalogPatternsByType = [],
     ): array
     {
+        $structuralPattern = '' === (string) ($item['reference_pattern_id'] ?? '')
+            ? $this->matchingCatalogPattern($item, $catalogPatternsByType)
+            : [];
+
+        if ([] !== $structuralPattern) {
+            $item['target_type'] = (string) $structuralPattern['type'];
+            $item['reference_pattern_id'] = '';
+            $item['catalog_pattern_id'] = (string) $structuralPattern['pattern']['id'];
+            $patternsById[$item['catalog_pattern_id']] = $structuralPattern['pattern'];
+        }
+
         $patternId = (string) ($item['reference_pattern_id'] ?? '');
 
         if ('' === $patternId) {
@@ -725,6 +823,87 @@ final class MigrationController extends ActionController
         $item = $this->applyContainerPattern($item, $pattern);
 
         return $item;
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     * @param array<string, array<string, array<string, mixed>>> $catalogPatternsByType
+     *
+     * @return array{type: string, pattern: array<string, mixed>}|array{}
+     */
+    private function matchingCatalogPattern(array $item, array $catalogPatternsByType): array
+    {
+        $sourceRecord = \is_array($item['source_record'] ?? null) ? $item['source_record'] : [];
+        $sourceRelations = \is_array($sourceRecord['relations'] ?? null)
+            ? $sourceRecord['relations']
+            : [];
+        $sourceSlotCount = 0;
+
+        foreach ($sourceRelations as $children) {
+            if (\is_array($children)) {
+                $sourceSlotCount = max($sourceSlotCount, \count($children));
+            }
+        }
+
+        if ($sourceSlotCount < 2) {
+            return [];
+        }
+
+        $matches = [];
+        $currentType = (string) ($item['target_type'] ?? '');
+
+        foreach ($catalogPatternsByType as $type => $patterns) {
+            foreach ($patterns as $pattern) {
+                if (!\is_array($pattern) || $this->patternSlotCount($pattern) !== $sourceSlotCount) {
+                    continue;
+                }
+
+                $matches[] = [
+                    'type' => $type,
+                    'pattern' => $pattern,
+                    'same_type' => $type === $currentType ? 0 : 1,
+                    'position' => (int) ($pattern['position'] ?? \PHP_INT_MAX),
+                ];
+            }
+        }
+
+        if ([] === $matches) {
+            return [];
+        }
+
+        usort($matches, static function (array $left, array $right): int {
+            $typeComparison = $left['same_type'] <=> $right['same_type'];
+
+            return 0 !== $typeComparison
+                ? $typeComparison
+                : $left['position'] <=> $right['position'];
+        });
+
+        return [
+            'type' => (string) $matches[0]['type'],
+            'pattern' => $matches[0]['pattern'],
+        ];
+    }
+
+    /** @param array<string, mixed> $pattern */
+    private function patternSlotCount(array $pattern): int
+    {
+        $columns = \is_array($pattern['container_columns'] ?? null)
+            ? array_values(array_unique(array_filter(
+                array_map('intval', $pattern['container_columns']),
+                static fn (int $column): bool => $column > 0,
+            )))
+            : [];
+
+        if ([] !== $columns) {
+            return \count($columns);
+        }
+
+        $relationCounts = \is_array($pattern['relation_counts'] ?? null)
+            ? array_map('intval', $pattern['relation_counts'])
+            : [];
+
+        return [] !== $relationCounts ? max($relationCounts) : 0;
     }
 
     /**

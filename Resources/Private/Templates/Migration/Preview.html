@@ -76,12 +76,17 @@
                     <small>Choose another compatible CType from the target TYPO3 installation.</small>
                   </label>
                   <f:form.select
+                    name="items[{iteration.index}][pattern_id]"
+                    value="{item.selected_layout}"
+                    options="{alternativeLayouts}"
+                    optionValueField="value"
+                    optionLabelField="label"
+                    class="form-select cf-migration-layout-choice"
+                  />
+                  <f:form.hidden
                     name="items[{iteration.index}][target_type]"
                     value="{item.target_type}"
-                    options="{alternativeTargetTypes}"
-                    optionValueField="type"
-                    optionLabelField="label"
-                    class="form-select cf-migration-target-type"
+                    class="cf-migration-target-type"
                   />
                 </div>
                 <div class="cf-migration-fields cf-migration-quick-fields" data-contentflow-migration-quick-fields>

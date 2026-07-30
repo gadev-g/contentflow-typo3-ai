@@ -29,7 +29,6 @@ final readonly class TranslatableRecordReader
     {
     }
 
-    /** @return array<string, string> */
     public function read(string $table, int $uid): array
     {
         if (!$this->isAllowedTable($table)) {
@@ -64,12 +63,6 @@ final readonly class TranslatableRecordReader
         return $fields;
     }
 
-    /**
-     * Resolve localizable TCA inline records such as Content Blocks
-     * collections. The records are returned in their configured sort order.
-     *
-     * @return list<array{table: string, uid: int}>
-     */
     public function relatedCollectionRecords(string $table, int $uid): array
     {
         if (!$this->isAllowedTable($table)) {
@@ -118,7 +111,6 @@ final readonly class TranslatableRecordReader
                     $query->createNamedParameter($table),
                 );
             }
-
             foreach (($config['foreign_match_fields'] ?? []) as $field => $value) {
                 if (!\is_string($field)) {
                     continue;
@@ -151,7 +143,6 @@ final readonly class TranslatableRecordReader
             } else {
                 $query->orderBy('uid');
             }
-
             foreach ($query->executeQuery()->fetchFirstColumn() as $relatedUid) {
                 $related[] = [
                     'table' => $foreignTable,
@@ -163,21 +154,11 @@ final readonly class TranslatableRecordReader
         return $related;
     }
 
-    /** @return list<string> */
     public function allowedTables(): array
     {
         return self::ALLOWED_TABLES;
     }
 
-    /**
-     * Custom content types can override the field configuration below
-     * TCA/types/<CType>/columnsOverrides. Use that effective configuration so
-     * project-specific fields are treated exactly like core fields.
-     *
-     * @param array<string, mixed> $record
-     * @param array<string, mixed> $configuration
-     * @return array<string, mixed>
-     */
     private function effectiveFieldConfiguration(
         string $table,
         array $record,
@@ -195,7 +176,6 @@ final readonly class TranslatableRecordReader
         return \is_array($override) ? array_replace_recursive($configuration, $override) : $configuration;
     }
 
-    /** @param array<string, mixed> $config */
     private function isTechnicalInput(array $config): bool
     {
         $eval = array_filter(array_map('trim', explode(',', (string) ($config['eval'] ?? ''))));
@@ -206,7 +186,6 @@ final readonly class TranslatableRecordReader
         );
     }
 
-    /** @return array<string, mixed> */
     private function record(string $table, int $uid): array
     {
         $query = $this->connectionPool->getQueryBuilderForTable($table);
@@ -255,7 +234,6 @@ final readonly class TranslatableRecordReader
             if (!\is_array($parentConfiguration)) {
                 continue;
             }
-
             foreach (($parentConfiguration['columns'] ?? []) as $fieldConfiguration) {
                 if (
                     \is_array($fieldConfiguration)

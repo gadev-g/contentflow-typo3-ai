@@ -11,17 +11,12 @@ final readonly class SourceConnectorClient
 {
     private bool $allowPrivateHosts;
     private string $configuredToken;
-
     public function __construct(
         private RequestFactory $requestFactory,
         ExtensionConfiguration $extensionConfiguration,
     ) {
-        /** @var array{allowPrivateSourceHosts?: bool|int|string, migrationSourceToken?: string} $configuration */
         $configuration = $extensionConfiguration->get('contentflow_translation');
-        $this->allowPrivateHosts = filter_var(
-            $configuration['allowPrivateSourceHosts'] ?? false,
-            \FILTER_VALIDATE_BOOL,
-        );
+        $this->allowPrivateHosts = filter_var($configuration['allowPrivateSourceHosts'] ?? false, \FILTER_VALIDATE_BOOL,);
         $this->configuredToken = trim((string) ($configuration['migrationSourceToken'] ?? ''));
     }
 
@@ -30,7 +25,6 @@ final readonly class SourceConnectorClient
         return '' !== $this->configuredToken;
     }
 
-    /** @return array<string, mixed> */
     public function export(string $sourceUrl, string $migrationToken): array
     {
         $parts = parse_url(trim($sourceUrl));
@@ -44,21 +38,20 @@ final readonly class SourceConnectorClient
         }
 
         $this->assertSafeHost((string) $parts['host']);
-        $origin = $parts['scheme'].'://'.$parts['host'];
+        $origin = $parts['scheme'] . '://' . $parts['host'];
 
         if (isset($parts['port'])) {
-            $origin .= ':'.$parts['port'];
+            $origin .= ':' . $parts['port'];
         }
 
         $effectiveToken = '' !== trim($migrationToken) ? trim($migrationToken) : $this->configuredToken;
-
         if ('' === $effectiveToken) {
             throw new \RuntimeException('Enter the migration token from the source TYPO3 installation.');
         }
 
         $options = [
             'headers' => [
-                'Authorization' => 'Bearer '.$effectiveToken,
+                'Authorization' => 'Bearer ' . $effectiveToken,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
             ],
@@ -68,14 +61,14 @@ final readonly class SourceConnectorClient
             'http_errors' => false,
         ];
         $response = $this->requestFactory->request(
-            $origin.'/contentflow/migration/export',
+            $origin . '/contentflow/migration/export',
             'POST',
             $options,
         );
 
         if (404 === $response->getStatusCode()) {
             $response = $this->requestFactory->request(
-                $origin.'/?eID=contentflow_migration_export',
+                $origin . '/?eID=contentflow_migration_export',
                 'POST',
                 $options,
             );
@@ -108,13 +101,14 @@ final readonly class SourceConnectorClient
         if ([] === $addresses) {
             throw new \RuntimeException('The source TYPO3 host could not be resolved.');
         }
-
         foreach ($addresses as $address) {
-            if (false === filter_var(
-                $address,
-                \FILTER_VALIDATE_IP,
-                \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE,
-            )) {
+            if (
+                false === filter_var(
+                    $address,
+                    \FILTER_VALIDATE_IP,
+                    \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE,
+                )
+            ) {
                 throw new \RuntimeException('Private source hosts are disabled. Enable them explicitly in Extension Configuration.');
             }
         }

@@ -47,58 +47,105 @@
             />
             <small>Enter the exact frontend URL of the page you want to migrate.</small>
           </div>
+        </div>
+
+        <div class="cf-grid cf-migration-page-grid cf-migration-target-grid">
           <div class="form-group">
             <label for="targetPageUid">Target TYPO3 page UID</label>
-            <f:form.textfield
-              name="targetPageUid"
-              id="targetPageUid"
-              value="{targetPageUid}"
-              class="form-control"
-              type="number"
-              min="1"
-              required="true"
-            />
+            <div class="cf-page-picker">
+              <f:form.textfield
+                name="targetPageUid"
+                id="targetPageUid"
+                value="{targetPageUid}"
+                class="form-control"
+                type="number"
+                min="1"
+                required="true"
+              />
+              <button
+                type="button"
+                class="btn btn-default"
+                data-contentflow-page-picker="targetPageUid"
+              >Select page</button>
+            </div>
             <small>The new content elements are added to this page after approval.</small>
+            <label class="cf-checkbox cf-checkbox-warning">
+              <f:form.checkbox name="clearTargetPage" value="1" checked="{clearTargetPage}" />
+              <span>Clear all existing content from the target page (global setting)</span>
+            </label>
           </div>
           <div class="form-group">
             <label for="referencePageUid">Reference page UID <span>optional</span></label>
-            <f:form.textfield
-              name="referencePageUid"
-              id="referencePageUid"
-              class="form-control"
-              type="number"
-              min="0"
-              placeholder="e.g. 42"
-            />
-            <small>ContentFlow prioritizes the real CTypes, variants and layout settings used on this target page.</small>
-          </div>
-          <div class="form-group">
-            <label for="migrationToken">Source migration token</label>
-            <f:form.password
-              name="migrationToken"
-              id="migrationToken"
-              class="form-control"
-              autocomplete="off"
-              placeholder="{f:if(condition: hasConfiguredMigrationToken, then: 'Global default token is configured', else: 'Enter source migration token')}"
-            />
-            <small>
-              <f:if condition="{hasConfiguredMigrationToken}">
-                <f:then>A global default token is configured. Leave this field empty to use it.</f:then>
-                <f:else>Required for the Source Connector. Leave empty when using the HTML scraper.</f:else>
-              </f:if>
-            </small>
-            <label class="cf-checkbox">
-              <f:form.checkbox name="saveMigrationToken" value="1" />
-              <span>Save this token as the global default for future migrations</span>
-            </label>
+            <div class="cf-page-picker">
+              <f:form.textfield
+                name="referencePageUid"
+                id="referencePageUid"
+                class="form-control"
+                type="number"
+                min="0"
+                placeholder="e.g. 42"
+              />
+              <button
+                type="button"
+                class="btn btn-default"
+                data-contentflow-page-picker="referencePageUid"
+              >Select page</button>
+            </div>
+            <small>This page defines the exact target structure, order and appearance.</small>
           </div>
         </div>
 
+        <div class="cf-grid cf-migration-global-grid">
+          <div class="form-group">
+            <label for="patternPageUid">Pattern library page UID <span>optional</span></label>
+            <div class="cf-page-picker">
+              <f:form.textfield
+                name="patternPageUid"
+                id="patternPageUid"
+                value="{patternPageUid}"
+                class="form-control"
+                type="number"
+                min="0"
+                placeholder="e.g. 84"
+              />
+              <button
+                type="button"
+                class="btn btn-default"
+                data-contentflow-page-picker="patternPageUid"
+              >Select page</button>
+            </div>
+            <small>A sample page containing all CTypes and appearance variants.</small>
+            <label class="cf-checkbox">
+              <f:form.checkbox name="savePatternPage" value="1" />
+              <span>Save this pattern library page globally or replace the current default</span>
+            </label>
+          </div>
+          <div class="form-group cf-migration-token-input">
+              <label for="migrationToken">Source migration token</label>
+              <f:form.password
+                name="migrationToken"
+                id="migrationToken"
+                class="form-control"
+                autocomplete="off"
+                placeholder="{f:if(condition: hasConfiguredMigrationToken, then: 'Global default token is configured', else: 'Enter source migration token')}"
+              />
+              <small>
+                <f:if condition="{hasConfiguredMigrationToken}">
+                  <f:then>A global default token is configured. Leave this field empty to use it.</f:then>
+                  <f:else>Required for the Source Connector. Leave empty when using the HTML scraper.</f:else>
+                </f:if>
+              </small>
+              <label class="cf-checkbox">
+                <f:form.checkbox name="saveMigrationToken" value="1" />
+                <span>Save this token as the global default for future migrations</span>
+              </label>
+          </div>
+        </div>
         <div class="cf-migration-proof">
           <span>1</span><p><b>Read</b><small>Extract visible editorial content</small></p>
-          <i>→</i>
+          <i aria-hidden="true"></i>
           <span>2</span><p><b>Map</b><small>Match the current TYPO3 CTypes</small></p>
-          <i>→</i>
+          <i aria-hidden="true"></i>
           <span>3</span><p><b>Review</b><small>Approve before anything is written</small></p>
         </div>
 

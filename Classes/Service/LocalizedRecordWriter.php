@@ -14,7 +14,6 @@ final readonly class LocalizedRecordWriter
     {
     }
 
-    /** @param array<string, string> $fields */
     public function write(string $table, int $sourceUid, int $languageId, array $fields): int
     {
         $control = $GLOBALS['TCA'][$table]['ctrl'] ?? [];
@@ -81,14 +80,6 @@ final readonly class LocalizedRecordWriter
         return (int) $localizedUid;
     }
 
-    /**
-     * Restore a soft-deleted translation before writing its newly approved
-     * fields. This avoids both invisible updates and duplicate localizations.
-     *
-     * @param array<string, mixed> $control
-     *
-     * @return int|string|false
-     */
     private function restoreDeletedLocalizedRecord(
         string $table,
         int $sourceUid,
@@ -135,15 +126,6 @@ final readonly class LocalizedRecordWriter
         );
     }
 
-    /**
-     * Deleted translations must not be reused. Otherwise DataHandler updates a
-     * record that remains hidden in TYPO3 and the approved translation appears
-     * not to have been saved.
-     *
-     * @param array<string, mixed> $control
-     *
-     * @return int|string|false
-     */
     private function findLocalizedUid(
         string $table,
         int $sourceUid,

@@ -12,7 +12,6 @@ final class AssetReader
     {
     }
 
-    /** @return array{uid: int, name: string, mimeType: string, contents: string, publicUrl: string, context: string} */
     public function read(int $fileUid): array
     {
         $file = $this->resourceFactory->getFileObject($fileUid);
@@ -44,7 +43,6 @@ final class AssetReader
         ];
     }
 
-    /** @return list<int> */
     public function fileUidsFromFolder(string $combinedIdentifier): array
     {
         $folder = $this->resourceFactory->getFolderObjectFromCombinedIdentifier($combinedIdentifier);

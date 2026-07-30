@@ -60,10 +60,6 @@ final class AssetMetadataController extends ActionController
         return $module->renderResponse('AssetMetadata/Index');
     }
 
-    /**
-     * @param list<array{id: string}> $providers
-     * @return list<array{id: string, label: string, provider: string}>
-     */
     private function availableModels(array $providers): array
     {
         $models = [];
@@ -251,7 +247,6 @@ final class AssetMetadataController extends ActionController
         return $this->redirect('index');
     }
 
-    /** @return list<array{id: int, code: string, title: string}> */
     private function availableLanguages(): array
     {
         $languages = [];

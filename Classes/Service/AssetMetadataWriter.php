@@ -15,7 +15,6 @@ final class AssetMetadataWriter
     {
     }
 
-    /** @param array<string, string> $metadata */
     public function write(int $fileUid, int $languageId, array $metadata): int
     {
         $query = $this->connectionPool->getQueryBuilderForTable('sys_file_metadata');

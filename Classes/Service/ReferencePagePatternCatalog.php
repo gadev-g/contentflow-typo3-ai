@@ -13,15 +13,17 @@ final readonly class ReferencePagePatternCatalog
     {
     }
 
-    /**
-     * @param list<array<string, mixed>> $targetTypes
-     *
-     * @return list<array<string, mixed>>
-     */
-    public function enrich(array $targetTypes, int $referencePageUid): array
-    {
+    public function enrich(
+        array $targetTypes,
+        int $referencePageUid,
+        string $patternField = 'reference_patterns',
+    ): array {
         if ($referencePageUid <= 0) {
             return $targetTypes;
+        }
+
+        if (!\in_array($patternField, ['reference_patterns', 'catalog_patterns'], true)) {
+            throw new \InvalidArgumentException('Unsupported migration pattern field.');
         }
 
         $typesByName = [];
@@ -33,7 +35,7 @@ final readonly class ReferencePagePatternCatalog
                 continue;
             }
 
-            $targetTypes[$index]['reference_patterns'] = [];
+            $targetTypes[$index][$patternField] = [];
             $typesByName[$type] = $index;
         }
 
@@ -57,6 +59,10 @@ final readonly class ReferencePagePatternCatalog
             ->fetchAllAssociative();
 
         foreach ($rows as $position => $row) {
+            if ($this->isNestedContentRecord($row)) {
+                continue;
+            }
+
             $type = (string) ($row['CType'] ?? '');
             $targetIndex = $typesByName[$type] ?? null;
 
@@ -64,7 +70,7 @@ final readonly class ReferencePagePatternCatalog
                 continue;
             }
 
-            if (\count($targetTypes[$targetIndex]['reference_patterns']) >= 25) {
+            if (\count($targetTypes[$targetIndex][$patternField]) >= 25) {
                 continue;
             }
 
@@ -107,7 +113,11 @@ final readonly class ReferencePagePatternCatalog
                 }
             }
 
-            $targetTypes[$targetIndex]['reference_patterns'][] = [
+            $container = $this->containerConfiguration(
+                $referencePageUid,
+                (int) $row['uid'],
+            );
+            $targetTypes[$targetIndex][$patternField][] = [
                 'id' => \sprintf('pages:%d:tt_content:%d', $referencePageUid, (int) $row['uid']),
                 'label' => $this->patternLabel($targetTypes[$targetIndex], $row),
                 'reference_page_uid' => $referencePageUid,
@@ -118,13 +128,28 @@ final readonly class ReferencePagePatternCatalog
                 'option_values' => $optionValues,
                 'empty_fields' => $emptyFields,
                 'relation_counts' => $this->relationCounts($targetTypes[$targetIndex], (int) $row['uid']),
+                'container_columns' => $container['columns'],
+                'container_parent_field' => $container['parent_field'],
+                'container_column_field' => $container['column_field'],
+                'container_child_col_pos' => $container['child_col_pos'],
             ];
         }
 
         return $targetTypes;
     }
 
-    /** @param array<string, mixed> $targetType */
+    private function isNestedContentRecord(array $row): bool
+    {
+        foreach (['tx_container_parent', 'tx_gridelements_container', 'tx_flux_parent'] as $parentField) {
+            if ((int) ($row[$parentField] ?? 0) > 0) {
+                return true;
+            }
+        }
+
+        return (int) ($row['parentid'] ?? 0) > 0
+            && 'tt_content' === (string) ($row['parenttable'] ?? '');
+    }
+
     private function patternLabel(array $targetType, array $row): string
     {
         $typeLabel = \is_string($targetType['label'] ?? null)
@@ -135,11 +160,6 @@ final readonly class ReferencePagePatternCatalog
         return '' === $header ? $typeLabel : $typeLabel . ': ' . mb_substr(strip_tags($header), 0, 100);
     }
 
-    /**
-     * @param array<string, mixed> $targetType
-     *
-     * @return array<string, int>
-     */
     private function relationCounts(array $targetType, int $parentUid): array
     {
         $counts = [];
@@ -174,5 +194,72 @@ final readonly class ReferencePagePatternCatalog
         }
 
         return $counts;
+    }
+
+    private function containerConfiguration(int $pageUid, int $parentUid): array
+    {
+        $connection = $this->connectionPool->getConnectionForTable('tt_content');
+        $schemaManager = $connection->createSchemaManager();
+        $empty = [
+            'columns' => [],
+            'parent_field' => '',
+            'column_field' => '',
+            'child_col_pos' => 0,
+        ];
+
+        if (!$schemaManager->tablesExist(['tt_content'])) {
+            return $empty;
+        }
+
+        $table = $schemaManager->introspectTable('tt_content');
+        $parentField = '';
+        $columnField = '';
+
+        if ($table->hasColumn('tx_container_parent')) {
+            $parentField = 'tx_container_parent';
+            $columnField = 'colPos';
+        } elseif (
+                $table->hasColumn('tx_gridelements_container')
+                && $table->hasColumn('tx_gridelements_columns')
+        ) {
+            $parentField = 'tx_gridelements_container';
+            $columnField = 'tx_gridelements_columns';
+        } else {
+            return $empty;
+        }
+
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('tt_content');
+        $rows = $queryBuilder
+            ->select('colPos', $columnField)
+            ->from('tt_content')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'pid',
+                    $queryBuilder->createNamedParameter($pageUid, Connection::PARAM_INT),
+                ),
+                $queryBuilder->expr()->eq(
+                    $parentField,
+                    $queryBuilder->createNamedParameter($parentUid, Connection::PARAM_INT),
+                ),
+            )
+            ->orderBy($columnField)
+            ->addOrderBy('sorting')
+            ->executeQuery()
+            ->fetchAllAssociative();
+        $columns = [];
+
+        foreach ($rows as $row) {
+            $columns[] = (int) ($row[$columnField] ?? 0);
+        }
+
+        return [
+            'columns' => array_values(array_unique(array_filter(
+                $columns,
+                static fn (int $column): bool => $column > 0,
+            ))),
+            'parent_field' => $parentField,
+            'column_field' => $columnField,
+            'child_col_pos' => (int) ($rows[0]['colPos'] ?? 0),
+        ];
     }
 }

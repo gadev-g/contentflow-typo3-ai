@@ -48,7 +48,6 @@ final readonly class MigrationSourceMiddleware implements MiddlewareInterface
         if (!$this->tokens->validate($this->bearerToken($request))) {
             return new JsonResponse(['error' => ['code' => 'unauthorized', 'message' => 'Invalid migration token.']], 401);
         }
-
         try {
             $payload = json_decode((string) $request->getBody(), true, 32, \JSON_THROW_ON_ERROR);
             $sourceUrl = \is_array($payload) ? trim((string) ($payload['source_url'] ?? '')) : '';
@@ -61,7 +60,7 @@ final readonly class MigrationSourceMiddleware implements MiddlewareInterface
                 return new JsonResponse(['error' => ['code' => 'host_mismatch', 'message' => 'The URL must belong to this TYPO3 host.']], 422);
             }
 
-            $baseUrl = $request->getUri()->getScheme().'://'.$request->getUri()->getAuthority();
+            $baseUrl = $request->getUri()->getScheme() . '://' . $request->getUri()->getAuthority();
 
             return new JsonResponse($this->exporter->export($sourceUrl, $baseUrl));
         } catch (\JsonException) {
@@ -76,16 +75,15 @@ final readonly class MigrationSourceMiddleware implements MiddlewareInterface
         $query = $request->getQueryParams();
         $expires = (int) ($query['expires'] ?? 0);
         $signature = (string) ($query['signature'] ?? '');
-        /** @var array{migrationSigningSecret?: string} $configuration */
+
         $configuration = $this->extensionConfiguration->get('contentflow_translation');
         $secret = trim((string) ($configuration['migrationSigningSecret'] ?? ''))
             ?: (string) ($GLOBALS['TYPO3_CONF_VARS']['SYS']['encryptionKey'] ?? '');
-        $expected = hash_hmac('sha256', $fileUid.':'.$expires, $secret);
+        $expected = hash_hmac('sha256', $fileUid . ':' . $expires, $secret);
 
         if ($expires < time() || '' === $signature || !hash_equals($expected, $signature)) {
             return new JsonResponse(['error' => ['code' => 'invalid_signature', 'message' => 'The media link expired.']], 403);
         }
-
         try {
             $file = $this->resourceFactory->getFileObject($fileUid);
             $response = new Response();
@@ -93,7 +91,7 @@ final readonly class MigrationSourceMiddleware implements MiddlewareInterface
 
             return $response
                 ->withHeader('Content-Type', $file->getMimeType())
-                ->withHeader('Content-Disposition', 'attachment; filename="'.addslashes($file->getName()).'"');
+                ->withHeader('Content-Disposition', 'attachment; filename="' . addslashes($file->getName()) . '"');
         } catch (\Throwable) {
             return new JsonResponse(['error' => ['code' => 'not_found', 'message' => 'Media file not found.']], 404);
         }

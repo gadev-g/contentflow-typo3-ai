@@ -64,7 +64,7 @@ try {
     $contentConnection = $connectionPool->getConnectionForTable('tt_content');
     $records = $contentConnection->fetchAll(
         'SELECT * FROM tt_content WHERE pid = ? AND deleted = 0 AND hidden = 0'
-        .' AND sys_language_uid IN (0, -1) ORDER BY colPos, sorting',
+        . ' AND sys_language_uid IN (0, -1) ORDER BY colPos, sorting',
         array($pageUid)
     );
     $elements = array();
@@ -108,16 +108,17 @@ function resolvePageUid($connection, $sourceUrl)
     }
 
     $path = trim(rawurldecode((string) parse_url($sourceUrl, PHP_URL_PATH)), '/');
-
     if ('' !== $path) {
         $schemaManager = $connection->getSchemaManager();
         $tableNames = $schemaManager->listTableNames();
+        foreach (array('tx_realurl_pathdata', 'tx_realurl_pathcache') as $pathTable) {
+            if (!in_array($pathTable, $tableNames, true)) {
+                continue;
+            }
 
-        if (in_array('tx_realurl_pathcache', $tableNames, true)) {
-            $pathCacheColumns = $schemaManager->listTableColumns('tx_realurl_pathcache');
+            $pathCacheColumns = $schemaManager->listTableColumns($pathTable);
             $pathConditions = array('pagepath = ?');
             $pathValues = array($path);
-
             if (isset($pathCacheColumns['language_id'])) {
                 $pathConditions[] = 'language_id IN (0, -1)';
             }
@@ -127,15 +128,11 @@ function resolvePageUid($connection, $sourceUrl)
                 $pathValues[] = time();
             }
 
-            $pathCacheRow = $connection->fetchAssoc(
-                'SELECT page_id FROM tx_realurl_pathcache WHERE '
-                .implode(' AND ', $pathConditions)
-                .' ORDER BY page_id DESC',
-                $pathValues
-            );
-
+            $pathCacheRow = $connection->fetchAssoc('SELECT page_id FROM ' . $pathTable . ' WHERE '
+                . implode(' AND ', $pathConditions)
+                . ' ORDER BY page_id DESC', $pathValues);
             if (is_array($pathCacheRow) && !empty($pathCacheRow['page_id'])) {
-                return (int) $pathCacheRow['page_id'];
+                    return (int) $pathCacheRow['page_id'];
             }
         }
     }
@@ -147,23 +144,89 @@ function resolvePageUid($connection, $sourceUrl)
 
     foreach (array('alias', 'tx_realurl_pathsegment') as $field) {
         if (isset($columns[$field])) {
-            $conditions[] = $field.' = ?';
+            $conditions[] = $field . ' = ?';
             $values[] = $segment;
         }
     }
 
     if (empty($conditions)) {
+        return resolvePageUidFromHierarchy($connection, $path, $columns);
+    }
+    $row = $connection->fetchAssoc('SELECT uid FROM pages WHERE deleted = 0 AND hidden = 0 AND (' . implode(' OR ', $conditions) . ')', $values);
+    if (is_array($row)) {
+        return (int) $row['uid'];
+    }
+
+    return resolvePageUidFromHierarchy($connection, $path, $columns);
+}
+
+function resolvePageUidFromHierarchy($connection, $path, array $columns)
+{
+    $segments = array_values(array_filter(explode('/', trim($path, '/'))));
+    if (empty($segments)) {
         return 0;
     }
 
-    $row = $connection->fetchAssoc(
-        'SELECT uid FROM pages WHERE deleted = 0 AND hidden = 0 AND ('.implode(' OR ', $conditions).')',
-        $values
-    );
+    $selectFields = array('uid', 'pid', 'title', 'nav_title');
+    foreach (array('alias', 'tx_realurl_pathsegment') as $field) {
+        if (isset($columns[$field])) {
+            $selectFields[] = $field;
+        }
+    }
 
-    return is_array($row) ? (int) $row['uid'] : 0;
+    $pages = $connection->fetchAll('SELECT ' . implode(', ', $selectFields) . ' FROM pages WHERE deleted = 0 AND hidden = 0');
+    $pagesByUid = array();
+    foreach ($pages as $page) {
+        $pagesByUid[(int) $page['uid']] = $page;
+    }
+    foreach ($pages as $page) {
+        $index = count($segments) - 1;
+        $candidate = $page;
+        while ($index >= 0 && is_array($candidate)) {
+            if (!pageMatchesSpeakingSegment($candidate, $segments[$index])) {
+                break;
+            }
+
+            --$index;
+            if ($index < 0) {
+                return (int) $page['uid'];
+            }
+
+            $parentUid = isset($candidate['pid']) ? (int) $candidate['pid'] : 0;
+            $candidate = isset($pagesByUid[$parentUid]) ? $pagesByUid[$parentUid] : null;
+        }
+    }
+
+    return 0;
 }
 
+function pageMatchesSpeakingSegment(array $page, $segment)
+{
+    foreach (array('tx_realurl_pathsegment', 'alias', 'nav_title', 'title') as $field) {
+        if (!isset($page[$field]) || '' === trim((string) $page[$field])) {
+            continue;
+        }
+
+        if (speakingUrlSegment((string) $page[$field]) === strtolower((string) $segment)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function speakingUrlSegment($value)
+{
+    $value = str_replace(array('Ä', 'Ö', 'Ü', 'ä', 'ö', 'ü', 'ß'), array('Ae', 'Oe', 'Ue', 'ae', 'oe', 'ue', 'ss'), trim((string) $value));
+    $transliterated = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
+    if (false !== $transliterated) {
+        $value = $transliterated;
+    }
+
+    $value = strtolower($value);
+    $value = preg_replace('/[^a-z0-9]+/', '-', $value);
+    return trim($value, '-');
+}
 function exportRecord($table, array $record, $connectionPool, $depth)
 {
     $fields = array();
@@ -192,14 +255,14 @@ function exportRecord($table, array $record, $connectionPool, $depth)
             $control = isset($GLOBALS['TCA'][$childTable]['ctrl']) ? $GLOBALS['TCA'][$childTable]['ctrl'] : array();
             $deleteField = !empty($control['delete']) ? $control['delete'] : '';
             $sortField = !empty($control['sortby']) ? $control['sortby'] : 'uid';
-            $sql = 'SELECT * FROM '.$childTable.' WHERE '.$config['foreign_field'].' = ?';
+            $sql = 'SELECT * FROM ' . $childTable . ' WHERE ' . $config['foreign_field'] . ' = ?';
 
             if ('' !== $deleteField) {
-                $sql .= ' AND '.$deleteField.' = 0';
+                $sql .= ' AND ' . $deleteField . ' = 0';
             }
 
             $children = $childConnection->fetchAll(
-                $sql.' ORDER BY '.$sortField,
+                $sql . ' ORDER BY ' . $sortField,
                 array((int) $record['uid'])
             );
             $relations[$field] = array();

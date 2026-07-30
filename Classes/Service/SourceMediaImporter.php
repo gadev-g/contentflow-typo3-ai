@@ -26,7 +26,6 @@ final readonly class SourceMediaImporter
     ) {
     }
 
-    /** @param array<string, mixed> $media */
     public function import(array $media): int
     {
         $expectedHash = strtolower((string) ($media['sha256'] ?? ''));

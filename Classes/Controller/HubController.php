@@ -45,7 +45,6 @@ final class HubController extends ActionController
         return $module->renderResponse('Hub/Coverage');
     }
 
-    /** @return array<string, mixed> */
     private function contentCoverage(): array
     {
         $pages = $this->defaultPages();
@@ -94,7 +93,6 @@ final class HubController extends ActionController
         ];
     }
 
-    /** @return list<array<string, mixed>> */
     private function defaultPages(): array
     {
         $query = $this->connectionPool->getQueryBuilderForTable('pages');
@@ -120,7 +118,6 @@ final class HubController extends ActionController
             ->fetchAllAssociative();
     }
 
-    /** @return list<array<string, mixed>> */
     private function defaultAssetMetadata(): array
     {
         $query = $this->connectionPool->getQueryBuilderForTable('sys_file_metadata');
@@ -149,7 +146,6 @@ final class HubController extends ActionController
             ->fetchAllAssociative();
     }
 
-    /** @return array<int, int> */
     private function translationCounts(string $table): array
     {
         $query = $this->connectionPool->getConnectionForTable($table)->createQueryBuilder();
@@ -174,7 +170,7 @@ final class HubController extends ActionController
         }
 
         $rows = $query
-            ->select($parentField.' AS parent_uid')
+            ->select($parentField . ' AS parent_uid')
             ->addSelectLiteral('COUNT(uid) AS translation_count')
             ->from($table)
             ->where(...$constraints)
@@ -202,10 +198,6 @@ final class HubController extends ActionController
             ->fetchOne();
     }
 
-    /**
-     * @param array<string, mixed> $record
-     * @param list<string>         $fields
-     */
     private function hasValue(array $record, array $fields): bool
     {
         foreach ($fields as $field) {

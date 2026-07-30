@@ -16,18 +16,12 @@ final readonly class ContentFlowClient
 
     public function __construct(private RequestFactory $requestFactory, ExtensionConfiguration $extensionConfiguration)
     {
-        /** @var array{apiUrl?: string, apiKey?: string, debugMode?: bool|int|string} $configuration */
         $configuration = $extensionConfiguration->get('contentflow_translation');
         $this->baseUrl = trim((string) ($configuration['apiUrl'] ?? ''));
         $this->apiKey = trim((string) ($configuration['apiKey'] ?? ''));
         $this->debugMode = filter_var($configuration['debugMode'] ?? false, \FILTER_VALIDATE_BOOL);
     }
 
-    /**
-     * @param array<string, string> $fields
-     *
-     * @return array<string, mixed>
-     */
     public function translate(
         string $reference,
         array $fields,
@@ -45,11 +39,6 @@ final readonly class ContentFlowClient
         );
     }
 
-    /**
-     * @param list<array{reference: string, fields: array<string, string>}> $records
-     *
-     * @return array<string, mixed>
-     */
     public function translateBatch(
         array $records,
         string $sourceLanguage,
@@ -72,7 +61,7 @@ final readonly class ContentFlowClient
         }
 
         $response = $this->requestFactory->request(
-            rtrim($this->baseUrl, '/').'/api/v1/integrations/typo3/jobs',
+            rtrim($this->baseUrl, '/') . '/api/v1/integrations/typo3/jobs',
             'POST',
             [
                 'headers' => ['X-API-Key' => $this->apiKey, 'Content-Type' => 'application/json'],
@@ -97,11 +86,9 @@ final readonly class ContentFlowClient
 
         $body = $this->withDebug($body, '/api/v1/integrations/typo3/jobs', $payload, $response->getStatusCode());
 
-        /** @var array<string, mixed> $body */
         return $body;
     }
 
-    /** @return list<array{id: string, enabled: bool, configured: bool, capabilities: list<string>}> */
     public function providers(): array
     {
         $context = $this->integrationContext();
@@ -109,7 +96,6 @@ final readonly class ContentFlowClient
         return is_array($context['items'] ?? null) ? array_values($context['items']) : [];
     }
 
-    /** @return list<array{id: string, size: int, parameter_size: string, capabilities: list<string>}> */
     public function models(string $provider): array
     {
         if ('' === trim($this->apiKey)) {
@@ -118,8 +104,8 @@ final readonly class ContentFlowClient
             );
         }
 
-        $endpoint = '/api/v1/providers/'.rawurlencode($provider).'/models';
-        $response = $this->requestFactory->request(rtrim($this->baseUrl, '/').$endpoint, 'GET', [
+        $endpoint = '/api/v1/providers/' . rawurlencode($provider) . '/models';
+        $response = $this->requestFactory->request(rtrim($this->baseUrl, '/') . $endpoint, 'GET', [
             'headers' => ['X-API-Key' => $this->apiKey, 'Accept' => 'application/json'],
             'timeout' => 20,
         ]);
@@ -132,14 +118,13 @@ final readonly class ContentFlowClient
         return is_array($body['items'] ?? null) ? array_values($body['items']) : [];
     }
 
-    /** @return array<string, mixed> */
     public function integrationContext(): array
     {
         if ('' === trim($this->apiKey)) {
             throw new \RuntimeException('The ContentFlow project API key is not configured in TYPO3 Extension Configuration.');
         }
 
-        $response = $this->requestFactory->request(rtrim($this->baseUrl, '/').'/api/v1/providers', 'GET', [
+        $response = $this->requestFactory->request(rtrim($this->baseUrl, '/') . '/api/v1/providers', 'GET', [
             'headers' => ['X-API-Key' => $this->apiKey, 'Accept' => 'application/json'],
             'timeout' => 15,
         ]);
@@ -163,7 +148,6 @@ final readonly class ContentFlowClient
         return true === ($context['entitlements']['products'][$product] ?? false);
     }
 
-    /** @return array<string, mixed> */
     public function analyzeSeo(
         int $pageUid,
         string $title,
@@ -174,7 +158,7 @@ final readonly class ContentFlowClient
         string $url = '',
     ): array {
         $payload = [
-            'reference' => 'pages:'.$pageUid,
+            'reference' => 'pages:' . $pageUid,
             'title' => $title,
             'content' => $content,
             'language' => $language,
@@ -186,7 +170,7 @@ final readonly class ContentFlowClient
         }
 
         $response = $this->requestFactory->request(
-            rtrim($this->baseUrl, '/').'/api/v1/integrations/typo3/seo/analyze',
+            rtrim($this->baseUrl, '/') . '/api/v1/integrations/typo3/seo/analyze',
             'POST',
             [
                 'headers' => ['X-API-Key' => $this->apiKey, 'Content-Type' => 'application/json'],
@@ -198,7 +182,7 @@ final readonly class ContentFlowClient
             $response,
             '/api/v1/integrations/typo3/seo/analyze',
             [
-                'reference' => 'pages:'.$pageUid,
+                'reference' => 'pages:' . $pageUid,
                 'provider' => $provider,
                 'model' => $model,
             ],
@@ -210,12 +194,6 @@ final readonly class ContentFlowClient
         return $this->withDebug($body, '/api/v1/integrations/typo3/seo/analyze', $payload, $response->getStatusCode());
     }
 
-    /**
-     * @param list<array{type: string, content: string, level?: int, source_url?: string}> $blocks
-     * @param list<array{type: string, label: string, fields: list<string>}>               $targetTypes
-     *
-     * @return array<string, mixed>
-     */
     public function planMigration(
         string $sourceUrl,
         string $sourceTitle,
@@ -242,7 +220,7 @@ final readonly class ContentFlowClient
         }
 
         $response = $this->requestFactory->request(
-            rtrim($this->baseUrl, '/').$endpoint,
+            rtrim($this->baseUrl, '/') . $endpoint,
             'POST',
             [
                 'headers' => ['X-API-Key' => $this->apiKey, 'Content-Type' => 'application/json'],
@@ -269,10 +247,6 @@ final readonly class ContentFlowClient
         return $this->withDebug($body, $endpoint, $payload, $response->getStatusCode());
     }
 
-    /**
-     * @param array<string, mixed> $result
-     * @param array<string, mixed> $error
-     */
     public function reportMigrationEvent(
         string $migrationId,
         string $status,
@@ -285,7 +259,7 @@ final readonly class ContentFlowClient
         }
 
         $response = $this->requestFactory->request(
-            rtrim($this->baseUrl, '/').'/api/v1/integrations/typo3/migrations/events',
+            rtrim($this->baseUrl, '/') . '/api/v1/integrations/typo3/migrations/events',
             'POST',
             [
                 'headers' => ['X-API-Key' => $this->apiKey, 'Content-Type' => 'application/json'],
@@ -305,7 +279,6 @@ final readonly class ContentFlowClient
         }
     }
 
-    /** @return array<string, mixed> */
     public function analyzeAsset(
         string $reference,
         string $mimeType,
@@ -332,7 +305,7 @@ final readonly class ContentFlowClient
         }
 
         $response = $this->requestFactory->request(
-            rtrim($this->baseUrl, '/').'/api/v1/integrations/typo3/assets/analyze',
+            rtrim($this->baseUrl, '/') . '/api/v1/integrations/typo3/assets/analyze',
             'POST',
             [
                 'headers' => ['X-API-Key' => $this->apiKey, 'Content-Type' => 'application/json'],
@@ -369,15 +342,9 @@ final readonly class ContentFlowClient
             $response->getStatusCode(),
         );
 
-        /** @var array<string, mixed> $body */
         return $body;
     }
 
-    /**
-     * @param array{reference?: string, provider?: string, model?: ?string} $context
-     *
-     * @return array<string, mixed>
-     */
     private function decodeResponse(ResponseInterface $response, string $endpoint, array $context): array
     {
         $rawBody = (string) $response->getBody();
@@ -403,11 +370,11 @@ final readonly class ContentFlowClient
                 'ContentFlow returned an invalid JSON response for %s (HTTP %d%s).',
                 $endpoint,
                 $response->getStatusCode(),
-                '' === $contentType ? '' : ', '.$contentType,
+                '' === $contentType ? '' : ', ' . $contentType,
             );
 
             if ('' !== $excerpt) {
-                $details .= ' Response: '.$excerpt;
+                $details .= ' Response: ' . $excerpt;
             }
 
             throw new \RuntimeException($details, 0, $exception);
@@ -420,9 +387,6 @@ final readonly class ContentFlowClient
         return $decoded;
     }
 
-    /**
-     * @param array{reference?: string, provider?: string, model?: ?string} $context
-     */
     private function reportClientError(
         string $endpoint,
         int $statusCode,
@@ -446,12 +410,12 @@ final readonly class ContentFlowClient
             'content_type' => $contentType,
             'response_excerpt' => $responseExcerpt,
             'error_code' => 'invalid_api_response',
-            'message' => 'The integration received invalid JSON: '.$message,
+            'message' => 'The integration received invalid JSON: ' . $message,
         ];
 
         try {
             $this->requestFactory->request(
-                rtrim($this->baseUrl, '/').'/api/v1/integrations/typo3/errors',
+                rtrim($this->baseUrl, '/') . '/api/v1/integrations/typo3/errors',
                 'POST',
                 [
                     'headers' => ['X-API-Key' => $this->apiKey, 'Content-Type' => 'application/json'],
@@ -460,7 +424,6 @@ final readonly class ContentFlowClient
                 ],
             );
         } catch (\Throwable) {
-            // A diagnostic request must never hide the original integration error.
         }
     }
 
@@ -481,12 +444,6 @@ final readonly class ContentFlowClient
         return $matches[1];
     }
 
-    /**
-     * @param array<string, mixed> $response
-     * @param array<string, mixed> $requestPayload
-     *
-     * @return array<string, mixed>
-     */
     private function withDebug(array $response, string $endpoint, array $requestPayload, int $statusCode): array
     {
         if (!$this->debugMode) {
@@ -495,7 +452,7 @@ final readonly class ContentFlowClient
 
         $response['_debug'] = [
             'method' => 'POST',
-            'url' => rtrim($this->baseUrl, '/').$endpoint,
+            'url' => rtrim($this->baseUrl, '/') . $endpoint,
             'headers' => "Content-Type: application/json\nX-API-Key: [redacted]",
             'request' => json_encode(
                 $requestPayload,

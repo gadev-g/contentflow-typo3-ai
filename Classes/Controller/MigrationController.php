@@ -236,6 +236,12 @@ final class MigrationController extends ActionController
                 }
             }
 
+            $items = $this->groupAdjacentStructuralItems(
+                $items,
+                $elements,
+                $catalogPatternsByType,
+            );
+
             foreach ($items as $itemIndex => &$item) {
                 if (\is_array($item)) {
                     $sourceIndex = (int) ($item['source_index'] ?? -1);
@@ -834,16 +840,7 @@ final class MigrationController extends ActionController
     private function matchingCatalogPattern(array $item, array $catalogPatternsByType): array
     {
         $sourceRecord = \is_array($item['source_record'] ?? null) ? $item['source_record'] : [];
-        $sourceRelations = \is_array($sourceRecord['relations'] ?? null)
-            ? $sourceRecord['relations']
-            : [];
-        $sourceSlotCount = 0;
-
-        foreach ($sourceRelations as $children) {
-            if (\is_array($children)) {
-                $sourceSlotCount = max($sourceSlotCount, \count($children));
-            }
-        }
+        $sourceSlotCount = $this->sourceSlotCount($sourceRecord);
 
         if ($sourceSlotCount < 2) {
             return [];
@@ -904,6 +901,174 @@ final class MigrationController extends ActionController
             : [];
 
         return [] !== $relationCounts ? max($relationCounts) : 0;
+    }
+
+    /**
+     * Consecutive source rows with the same structural type can represent one
+     * visual component. Group the largest sequence that exactly fits a pattern
+     * from the curated library, for example two 2-column rows into one
+     * 4-column teaser.
+     *
+     * @param list<array<string, mixed>> $items
+     * @param list<array<string, mixed>> $elements
+     * @param array<string, array<string, array<string, mixed>>> $catalogPatternsByType
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function groupAdjacentStructuralItems(
+        array $items,
+        array $elements,
+        array $catalogPatternsByType,
+    ): array {
+        $grouped = [];
+        $itemCount = \count($items);
+        $index = 0;
+
+        while ($index < $itemCount) {
+            $item = \is_array($items[$index] ?? null) ? $items[$index] : [];
+            $targetType = (string) ($item['target_type'] ?? '');
+            $sourceIndices = $this->sourceIndices($item);
+            $sourceRecord = $this->combinedSourceRecord($elements, $sourceIndices);
+            $sourceType = (string) ($sourceRecord['type'] ?? '');
+            $slotCount = $this->sourceSlotCount($sourceRecord);
+            $bestEnd = $index;
+            $bestSourceIndices = $sourceIndices;
+
+            if ('' !== $targetType && '' !== $sourceType && $slotCount > 0) {
+                $maximumPatternSize = $this->maximumPatternSlotCount(
+                    $catalogPatternsByType[$targetType] ?? [],
+                );
+                $candidateIndices = $sourceIndices;
+                $candidateSlotCount = $slotCount;
+
+                for ($candidateIndex = $index + 1; $candidateIndex < $itemCount; ++$candidateIndex) {
+                    $candidate = \is_array($items[$candidateIndex] ?? null)
+                        ? $items[$candidateIndex]
+                        : [];
+
+                    if ($targetType !== (string) ($candidate['target_type'] ?? '')) {
+                        break;
+                    }
+
+                    $nextSourceIndices = $this->sourceIndices($candidate);
+                    $nextSourceRecord = $this->combinedSourceRecord($elements, $nextSourceIndices);
+
+                    if ($sourceType !== (string) ($nextSourceRecord['type'] ?? '')) {
+                        break;
+                    }
+
+                    $nextSlotCount = $this->sourceSlotCount($nextSourceRecord);
+
+                    if ($nextSlotCount <= 0 || $candidateSlotCount + $nextSlotCount > $maximumPatternSize) {
+                        break;
+                    }
+
+                    $candidateSlotCount += $nextSlotCount;
+                    $candidateIndices = array_merge($candidateIndices, $nextSourceIndices);
+
+                    if ($this->hasPatternWithSlotCount(
+                        $catalogPatternsByType[$targetType] ?? [],
+                        $candidateSlotCount,
+                    )) {
+                        $bestEnd = $candidateIndex;
+                        $bestSourceIndices = $candidateIndices;
+                    }
+                }
+            }
+
+            if ($bestEnd > $index) {
+                $item['source_index'] = (int) ($bestSourceIndices[0] ?? -1);
+                $item['source_indices'] = array_values(array_unique($bestSourceIndices));
+                $item['relations'] = $this->mergePlannedRelations(
+                    array_slice($items, $index, $bestEnd - $index + 1),
+                );
+            }
+
+            $grouped[] = $item;
+            $index = $bestEnd + 1;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     *
+     * @return list<int>
+     */
+    private function sourceIndices(array $item): array
+    {
+        $indices = \is_array($item['source_indices'] ?? null)
+            ? $item['source_indices']
+            : [$item['source_index'] ?? -1];
+
+        return array_values(array_filter(
+            array_map('intval', $indices),
+            static fn (int $sourceIndex): bool => $sourceIndex >= 0,
+        ));
+    }
+
+    /** @param array<string, mixed> $sourceRecord */
+    private function sourceSlotCount(array $sourceRecord): int
+    {
+        $relations = \is_array($sourceRecord['relations'] ?? null)
+            ? $sourceRecord['relations']
+            : [];
+        $slotCount = 0;
+
+        foreach ($relations as $children) {
+            if (\is_array($children)) {
+                $slotCount = max($slotCount, \count($children));
+            }
+        }
+
+        return $slotCount;
+    }
+
+    /** @param array<string, array<string, mixed>> $patterns */
+    private function maximumPatternSlotCount(array $patterns): int
+    {
+        $maximum = 0;
+
+        foreach ($patterns as $pattern) {
+            if (\is_array($pattern)) {
+                $maximum = max($maximum, $this->patternSlotCount($pattern));
+            }
+        }
+
+        return $maximum;
+    }
+
+    /** @param array<string, array<string, mixed>> $patterns */
+    private function hasPatternWithSlotCount(array $patterns, int $slotCount): bool
+    {
+        foreach ($patterns as $pattern) {
+            if (\is_array($pattern) && $this->patternSlotCount($pattern) === $slotCount) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $items
+     *
+     * @return array<string, list<array<string, mixed>>>
+     */
+    private function mergePlannedRelations(array $items): array
+    {
+        $relations = [];
+
+        foreach ($items as $item) {
+            foreach (\is_array($item['relations'] ?? null) ? $item['relations'] : [] as $field => $children) {
+                if (\is_string($field) && \is_array($children)) {
+                    $relations[$field] = array_merge($relations[$field] ?? [], $children);
+                }
+            }
+        }
+
+        return $relations;
     }
 
     /**

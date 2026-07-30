@@ -48,6 +48,7 @@ final class MigrationController extends ActionController
         $module = $this->moduleTemplateFactory->create($this->request);
         $targetPageUid = $this->request->hasArgument('id') ? (int) $this->request->getArgument('id') : 0;
         $patternPageUid = $this->configuredPatternPageUid();
+        $clearTargetPage = $this->configuredClearTargetPage();
 
         try {
             $context = $this->client->integrationContext();
@@ -76,6 +77,7 @@ final class MigrationController extends ActionController
             'defaultProvider' => $providers[0]['id'] ?? '',
             'targetPageUid' => $targetPageUid,
             'patternPageUid' => $patternPageUid,
+            'clearTargetPage' => $clearTargetPage,
             'targetTypes' => $this->targetSchema->availableTypes($targetPageUid, $this->request),
             'migrationTokens' => $this->tokens->all(),
             'hasConfiguredMigrationToken' => $this->sourceConnector->hasConfiguredToken(),
@@ -92,6 +94,7 @@ final class MigrationController extends ActionController
         string $model = '',
         bool $saveMigrationToken = false,
         bool $savePatternPage = false,
+        bool $clearTargetPage = false,
         int $referencePageUid = 0,
         int $patternPageUid = 0,
     ): ResponseInterface {
@@ -125,6 +128,7 @@ final class MigrationController extends ActionController
             } elseif ($patternPageUid <= 0) {
                 $patternPageUid = $this->configuredPatternPageUid();
             }
+            $this->setConfiguredClearTargetPage($clearTargetPage);
 
             $export = 'html' === $sourceMode
                 ? $this->htmlScraper->scrape($sourceUrl)
@@ -309,6 +313,7 @@ final class MigrationController extends ActionController
                 'targetPageUid' => $targetPageUid,
                 'referencePageUid' => $referencePageUid,
                 'patternPageUid' => $patternPageUid,
+                'clearTargetPage' => $clearTargetPage,
                 'sourceMode' => $sourceMode,
                 'items' => $items,
                 'targetTypes' => $targetTypes,
@@ -381,6 +386,7 @@ final class MigrationController extends ActionController
             $created = $this->writer->write(
                 (int) $preview['targetPageUid'],
                 $editedItems,
+                true === ($preview['clearTargetPage'] ?? false),
             );
 
             $this->backendUser()->setAndSaveSessionData($sessionKey, null);
@@ -391,7 +397,9 @@ final class MigrationController extends ActionController
                 ['created_elements' => $created],
             );
             $this->addFlashMessage(
-                sprintf('%d content element(s) were added to the target page.', $created),
+                true === ($preview['clearTargetPage'] ?? false)
+                    ? sprintf('The target page was cleared and %d content element(s) were created.', $created)
+                    : sprintf('%d content element(s) were added to the target page.', $created),
                 'Migration completed',
             );
         } catch (\Throwable $exception) {
@@ -884,6 +892,25 @@ final class MigrationController extends ActionController
         /** @var array<string, mixed> $configuration */
         $configuration = $this->extensionConfiguration->get('contentflow_translation');
         $configuration['migrationPatternPageUid'] = max(0, $pageUid);
+        $this->extensionConfiguration->set('contentflow_translation', $configuration);
+    }
+
+    private function configuredClearTargetPage(): bool
+    {
+        /** @var array<string, mixed> $configuration */
+        $configuration = $this->extensionConfiguration->get('contentflow_translation');
+
+        return filter_var(
+            $configuration['migrationClearTargetPage'] ?? false,
+            \FILTER_VALIDATE_BOOL,
+        );
+    }
+
+    private function setConfiguredClearTargetPage(bool $clearTargetPage): void
+    {
+        /** @var array<string, mixed> $configuration */
+        $configuration = $this->extensionConfiguration->get('contentflow_translation');
+        $configuration['migrationClearTargetPage'] = $clearTargetPage ? '1' : '0';
         $this->extensionConfiguration->set('contentflow_translation', $configuration);
     }
 }

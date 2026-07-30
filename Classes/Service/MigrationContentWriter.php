@@ -19,7 +19,7 @@ final readonly class MigrationContentWriter
     /**
      * @param list<array{source_index: int, target_type: string, fields: array<string, string>}> $items
      */
-    public function write(int $pageUid, array $items): int
+    public function write(int $pageUid, array $items, bool $clearExistingContent = false): int
     {
         if ($pageUid <= 0) {
             throw new \RuntimeException('Select a valid target page.');
@@ -94,6 +94,10 @@ final readonly class MigrationContentWriter
             throw new \RuntimeException('The migration preview contains no writable content elements.');
         }
 
+        if ($clearExistingContent) {
+            $this->clearPageContent($pageUid);
+        }
+
         $handler = GeneralUtility::makeInstance(DataHandler::class);
         $handler->start($data, []);
         $handler->process_datamap();
@@ -108,6 +112,35 @@ final readonly class MigrationContentWriter
         $created += $this->writeContainerChildren($handler, $pageUid, $items);
 
         return $created;
+    }
+
+    private function clearPageContent(int $pageUid): void
+    {
+        $connection = GeneralUtility::makeInstance(ConnectionPool::class)->getConnectionForTable('tt_content');
+        $contentUids = $connection->fetchFirstColumn(
+            'SELECT uid FROM tt_content WHERE pid = ? AND deleted = 0 ORDER BY uid DESC',
+            [$pageUid],
+        );
+
+        if ([] === $contentUids) {
+            return;
+        }
+
+        $commands = ['tt_content' => []];
+
+        foreach ($contentUids as $contentUid) {
+            $commands['tt_content'][(int) $contentUid] = ['delete' => 1];
+        }
+
+        $handler = GeneralUtility::makeInstance(DataHandler::class);
+        $handler->start([], $commands);
+        $handler->process_cmdmap();
+
+        if ([] !== $handler->errorLog) {
+            throw new \RuntimeException(
+                'The target page could not be cleared. ' . implode(' ', $handler->errorLog),
+            );
+        }
     }
 
     /** @param list<array<string, mixed>> $items */

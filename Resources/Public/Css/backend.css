@@ -293,6 +293,7 @@
 .cf-migration-token-card { margin-top: 24px; }
 .cf-checkbox { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; color: #53647a; font-size: 12px; font-weight: 600; }
 .cf-checkbox input { margin-top: 2px; }
+.cf-checkbox-warning { color: #9a5a10; }
 .cf-migration-token-default { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px; padding: 12px 15px; border: 1px solid #d9e5f5; border-radius: 11px; background: #f7fbff; color: #53647a; font-size: 12px; }
 .cf-token-create { display: grid; grid-template-columns: minmax(240px, 1fr) auto; grid-template-areas: "field action"; gap: 16px; align-items: end; }
 .cf-token-create .form-group { grid-area: field; margin: 0; }

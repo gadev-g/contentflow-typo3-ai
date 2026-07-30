@@ -18,3 +18,6 @@ migrationSigningSecret =
 
 # cat=migration/basic; type=int; label=Default pattern library page UID:Globally preselect this TYPO3 page as the pattern library for content migrations.
 migrationPatternPageUid = 0
+
+# cat=migration/basic; type=boolean; label=Clear target page before migration:Delete all existing content elements from the target page immediately before approved migration content is created.
+migrationClearTargetPage = 0

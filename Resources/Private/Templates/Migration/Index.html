@@ -69,6 +69,10 @@
               >Select page</button>
             </div>
             <small>The new content elements are added to this page after approval.</small>
+            <label class="cf-checkbox cf-checkbox-warning">
+              <f:form.checkbox name="clearTargetPage" value="1" checked="{clearTargetPage}" />
+              <span>Clear all existing content from the target page before migration (global setting)</span>
+            </label>
           </div>
           <div class="form-group">
             <label for="referencePageUid">Reference page UID <span>optional</span></label>

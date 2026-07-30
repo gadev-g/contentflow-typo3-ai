@@ -260,9 +260,12 @@
 @media (max-width: 800px) { .cf-product-grid { grid-template-columns: 1fr; } .cf-product-menu { width: 100%; }.cf-product-menu>div { width: 100%; }.cf-coming-card { grid-template-columns: 1fr; padding: 25px; } }
 .cf-migration-source-grid { grid-template-columns: minmax(260px, .9fr) minmax(360px, 1.4fr); align-items: start; }
 .cf-migration-page-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; margin-top: 22px; }
+.cf-migration-target-grid, .cf-migration-global-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cf-migration-global-grid { align-items: start; margin-top: 34px; }
+.cf-migration-global-grid > .form-group { min-width: 0; width: 100%; }
 .cf-page-picker { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .cf-page-picker .btn { min-width: 100px; white-space: nowrap; }
-.cf-migration-token-input { width: 100%; margin-top: 34px; }
+.cf-migration-token-input { width: 100%; }
 .cf-migration-proof { display: grid; grid-template-columns: 34px 1fr 24px 34px 1fr 24px 34px 1fr; align-items: center; gap: 10px; margin-top: 25px; padding: 17px; border: 1px solid #d9e5f5; border-radius: 13px; background: linear-gradient(135deg, #f7fbff, #f8f6ff); }
 .cf-migration-proof > span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, #168bff, #7354ef); color: #fff; font-weight: 800; }
 .cf-migration-proof > p { margin: 0; }
@@ -284,7 +287,7 @@
 .cf-migration-items dl > div:first-child { border-top: 0; }
 .cf-migration-items dt { color: #6e7c91; font-size: 11px; font-weight: 800; }
 .cf-migration-items dd { margin: 0; color: #2d3a50; font-size: 12px; line-height: 1.55; }
-@media (max-width: 1000px) { .cf-migration-source-grid, .cf-migration-page-grid { grid-template-columns: 1fr; } .cf-migration-proof { grid-template-columns: 34px 1fr; } .cf-migration-proof > i { display: none; } }
+@media (max-width: 1000px) { .cf-migration-source-grid, .cf-migration-page-grid, .cf-migration-global-grid { grid-template-columns: 1fr; } .cf-migration-proof { grid-template-columns: 34px 1fr; } .cf-migration-proof > i { display: none; } }
 @media (max-width: 700px) { .cf-migration-summary { grid-template-columns: 1fr; } .cf-migration-items dl > div { grid-template-columns: 1fr; gap: 4px; } }
 .cf-migration-token-card { margin-top: 24px; }
 .cf-checkbox { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; color: #53647a; font-size: 12px; font-weight: 600; }

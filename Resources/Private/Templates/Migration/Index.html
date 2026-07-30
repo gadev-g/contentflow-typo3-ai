@@ -49,7 +49,7 @@
           </div>
         </div>
 
-        <div class="cf-grid cf-migration-page-grid">
+        <div class="cf-grid cf-migration-page-grid cf-migration-target-grid">
           <div class="form-group">
             <label for="targetPageUid">Target TYPO3 page UID</label>
             <div class="cf-page-picker">
@@ -89,6 +89,9 @@
             </div>
             <small>This page defines the exact target structure, order and appearance.</small>
           </div>
+        </div>
+
+        <div class="cf-grid cf-migration-global-grid">
           <div class="form-group">
             <label for="patternPageUid">Pattern library page UID <span>optional</span></label>
             <div class="cf-page-picker">
@@ -113,9 +116,6 @@
               <span>Save this pattern library page globally or replace the current default</span>
             </label>
           </div>
-        </div>
-
-        <div class="cf-grid cf-migration-page-grid">
           <div class="form-group cf-migration-token-input">
               <label for="migrationToken">Source migration token</label>
               <f:form.password

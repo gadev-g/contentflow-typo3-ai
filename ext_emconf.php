@@ -6,6 +6,6 @@ $EM_CONF[$_EXTKEY] = [
     'category' => 'module',
     'author' => 'ContentFlow AI',
     'state' => 'beta',
-    'version' => '0.1.31',
+    'version' => '0.1.32',
     'constraints' => ['depends' => ['typo3' => '13.4.0-13.4.99']],
 ];

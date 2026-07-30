@@ -65,6 +65,7 @@ final readonly class TargetContentSchema
                 'relations' => $relations,
             ];
         }
+
         if ([] === $types) {
             return [[
                 'type' => 'text',
@@ -120,6 +121,7 @@ final readonly class TargetContentSchema
                 if (\in_array($childFieldType, ['input', 'text', 'link'], true)) {
                     $childFields[] = (string) $childField;
                 }
+
                 if (
                     'file' === $childFieldType
                     || (
@@ -130,6 +132,7 @@ final readonly class TargetContentSchema
                     $mediaFields[] = (string) $childField;
                 }
             }
+
             if ([] === $childFields && [] === $mediaFields) {
                 continue;
             }
@@ -192,6 +195,7 @@ final readonly class TargetContentSchema
 
                 continue;
             }
+
             if ('select' !== ($configuration['type'] ?? null)) {
                 continue;
             }

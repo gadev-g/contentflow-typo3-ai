@@ -62,6 +62,7 @@ final class MigrationController extends ActionController
                 ContextualFeedbackSeverity::ERROR,
             );
         }
+
         if (true !== ($context['entitlements']['products']['content_migration'] ?? false)) {
             $module->assignMultiple([
                 'plan' => $context['entitlements']['plan'] ?? 'free',
@@ -101,12 +102,15 @@ final class MigrationController extends ActionController
             if (!$this->client->hasProduct('content_migration')) {
                 throw new \RuntimeException('Content Migration requires the Starter plan or higher.');
             }
+
             if ($targetPageUid <= 0) {
                 throw new \RuntimeException('Please select a target TYPO3 page.');
             }
+
             if (!\in_array($sourceMode, ['connector', 'html'], true)) {
                 throw new \RuntimeException('Select a valid source method.');
             }
+
             if (
                 'connector' === $sourceMode
                 && '' === trim($migrationToken)
@@ -114,9 +118,11 @@ final class MigrationController extends ActionController
             ) {
                 throw new \RuntimeException('Enter the migration token from the source TYPO3 installation.');
             }
+
             if ('connector' === $sourceMode && $saveMigrationToken && '' !== trim($migrationToken)) {
                 $this->setConfiguredSourceToken(trim($migrationToken));
             }
+
             if ($savePatternPage) {
                 $this->setConfiguredPatternPageUid($patternPageUid);
             } elseif ($patternPageUid <= 0) {
@@ -505,6 +511,7 @@ final class MigrationController extends ActionController
                     $submitted['fields'],
                 );
             }
+
             if ([] !== $selectedPattern) {
                 $stored = $this->applySelectedPattern(
                     $stored,
@@ -734,6 +741,7 @@ final class MigrationController extends ActionController
                 $item['catalog_pattern_id'] = (string) ($pattern['id'] ?? '');
             }
         }
+
         if ([] === $pattern) {
             $typePatterns = \is_array($patternsByType[(string) ($item['target_type'] ?? '')] ?? null)
                 ? array_values($patternsByType[(string) ($item['target_type'] ?? '')])
@@ -743,6 +751,7 @@ final class MigrationController extends ActionController
                 $pattern = $typePatterns[0];
             }
         }
+
         if ([] === $pattern) {
             return $item;
         }
@@ -793,6 +802,7 @@ final class MigrationController extends ActionController
                 ];
             }
         }
+
         if ([] === $matches) {
             return [];
         }
@@ -889,6 +899,7 @@ final class MigrationController extends ActionController
                     }
                 }
             }
+
             if ($bestEnd > $index) {
                 $item['source_index'] = (int) ($bestSourceIndices[0] ?? -1);
                 $item['source_indices'] = array_values(array_unique($bestSourceIndices));
@@ -1065,6 +1076,7 @@ final class MigrationController extends ActionController
             if ([] === $record) {
                 continue;
             }
+
             if ([] === $combined) {
                 $combined = $record;
             }

@@ -41,6 +41,7 @@ final class SeoController extends ActionController
                 ContextualFeedbackSeverity::ERROR,
             );
         }
+
         if (true !== ($context['entitlements']['products']['seo_intelligence'] ?? false)) {
             $module->assign('plan', $context['entitlements']['plan'] ?? 'free');
 
@@ -62,6 +63,7 @@ final class SeoController extends ActionController
             if (!$this->client->hasProduct('seo_intelligence')) {
                 throw new \RuntimeException('SEO Intelligence requires the Starter plan or higher.');
             }
+
             if ($uid <= 0) {
                 throw new \RuntimeException('Please select a TYPO3 page.');
             }

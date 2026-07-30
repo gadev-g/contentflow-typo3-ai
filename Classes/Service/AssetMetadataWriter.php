@@ -41,6 +41,7 @@ final class AssetMetadataWriter
                 'TYPO3 has no metadata record for the selected file. Re-index the file and try again.',
             );
         }
+
         if ($languageId > 0) {
             return $this->localizedWriter->write('sys_file_metadata', (int) $metadataUid, $languageId, $metadata);
         }

@@ -86,9 +86,11 @@ final readonly class MigrationContentWriter
             $sortingByIdentifier[$identifier] = $sorting;
             $sorting += 256;
         }
+
         if ([] === $data) {
             throw new \RuntimeException('The migration preview contains no writable content elements.');
         }
+
         if ($clearExistingContent) {
             $this->clearPageContent($pageUid);
         }
@@ -216,6 +218,7 @@ final readonly class MigrationContentWriter
 
                 $data[$childTable]['NEW_contentflow_relation_' . $parentUid . '_' . $index] = $childData;
             }
+
             if ([] === $data) {
                 continue;
             }
@@ -227,6 +230,7 @@ final readonly class MigrationContentWriter
             if ([] !== $handler->errorLog) {
                 throw new \RuntimeException(implode(' ', $handler->errorLog));
             }
+
             if (null !== $sortingField) {
                 $this->enforceSorting($childTable, $sortingField, $sortingByIdentifier, $handler);
             }
@@ -287,6 +291,7 @@ final readonly class MigrationContentWriter
                 'description' => (string) ($media['metadata']['description'] ?? ''),
             ];
         }
+
         if ([] === $data) {
             return;
         }
@@ -354,6 +359,7 @@ final readonly class MigrationContentWriter
             if ([] !== $resolvedChildren) {
                 $children = $resolvedChildren;
             }
+
             if ([] === $children) {
                 continue;
             }
@@ -431,6 +437,7 @@ final readonly class MigrationContentWriter
                 $data['tt_content'][$identifier] = $childData;
                 $preparedChildren[$identifier] = $child;
             }
+
             if ([] === $data) {
                 continue;
             }
@@ -471,12 +478,15 @@ final readonly class MigrationContentWriter
         if (isset($allowedTypes[$sourceType])) {
             return $sourceType;
         }
+
         if ([] !== $media && isset($allowedTypes['textpic'])) {
             return 'textpic';
         }
+
         if ([] !== $media && isset($allowedTypes['image'])) {
             return 'image';
         }
+
         if (
             ('' !== trim((string) ($fields['bodytext'] ?? ''))
                 || '' !== trim((string) ($fields['header'] ?? '')))
@@ -540,6 +550,7 @@ final readonly class MigrationContentWriter
                     $element->removeAttribute($attribute);
                 }
             }
+
             if ($element->hasAttribute('href')) {
                 $href = trim($element->getAttribute('href'));
 
@@ -577,6 +588,7 @@ final readonly class MigrationContentWriter
                 if (!\is_string($value) || '' === $value) {
                     continue;
                 }
+
                 if ($this->linkedDocumentHrefMatches(trim($value), $linkedFile)) {
                     $fields[$field] = $targetHref;
 

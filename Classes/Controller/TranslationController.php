@@ -224,6 +224,7 @@ final class TranslationController extends ActionController
                     (array) $record['translatedFields'],
                 );
             }
+
             if ([] === $localizedUids) {
                 throw new \RuntimeException('The preview does not contain any records.');
             }
@@ -372,6 +373,7 @@ final class TranslationController extends ActionController
                 $selected,
             );
         }
+
         if ('page' === $scope) {
             $selection = [['table' => 'pages', 'uid' => $uid]];
             $query = $this->connectionPool->getQueryBuilderForTable('tt_content');
@@ -432,6 +434,7 @@ final class TranslationController extends ActionController
             foreach ($this->reader->relatedCollectionRecords($record['table'], $record['uid']) as $relatedRecord) {
                 $queue[] = $relatedRecord;
             }
+
             if ('tt_content' !== $record['table']) {
                 continue;
             }
@@ -528,6 +531,7 @@ final class TranslationController extends ActionController
             if (!$record || (int) ($record[$relation['field']] ?? 0) <= 0) {
                 continue;
             }
+
             if (isset($relation['tableField']) && 'tt_content' !== ($record[$relation['tableField']] ?? null)) {
                 continue;
             }
@@ -549,6 +553,7 @@ final class TranslationController extends ActionController
                 $relations[] = ['field' => $field];
             }
         }
+
         if (isset($columns['parentid'], $columns['parenttable'])) {
             $relations[] = ['field' => 'parentid', 'tableField' => 'parenttable'];
         }

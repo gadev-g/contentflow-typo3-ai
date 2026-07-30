@@ -32,6 +32,7 @@ final readonly class MigrationSourceMiddleware implements MiddlewareInterface
         if ('/contentflow/migration/export' === $path && 'POST' === strtoupper($request->getMethod())) {
             return $this->export($request);
         }
+
         if (
             'GET' === strtoupper($request->getMethod())
             && preg_match('#^/contentflow/migration/media/(\d+)$#', $path, $match)
@@ -54,6 +55,7 @@ final readonly class MigrationSourceMiddleware implements MiddlewareInterface
             if (false === filter_var($sourceUrl, \FILTER_VALIDATE_URL)) {
                 return new JsonResponse(['error' => ['code' => 'validation_failed', 'message' => 'source_url is required.']], 422);
             }
+
             if (strtolower((string) parse_url($sourceUrl, \PHP_URL_HOST)) !== strtolower($request->getUri()->getHost())) {
                 return new JsonResponse(['error' => ['code' => 'host_mismatch', 'message' => 'The URL must belong to this TYPO3 host.']], 422);
             }

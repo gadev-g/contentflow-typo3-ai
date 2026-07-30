@@ -122,6 +122,7 @@ function resolvePageUid($connection, $sourceUrl)
             if (isset($pathCacheColumns['language_id'])) {
                 $pathConditions[] = 'language_id IN (0, -1)';
             }
+
             if (isset($pathCacheColumns['expire'])) {
                 $pathConditions[] = '(expire = 0 OR expire > ?)';
                 $pathValues[] = time();
@@ -147,6 +148,7 @@ function resolvePageUid($connection, $sourceUrl)
             $values[] = $segment;
         }
     }
+
     if (empty($conditions)) {
         return resolvePageUidFromHierarchy($connection, $path, $columns);
     }
@@ -204,6 +206,7 @@ function pageMatchesSpeakingSegment(array $page, $segment)
         if (!isset($page[$field]) || '' === trim((string) $page[$field])) {
             continue;
         }
+
         if (speakingUrlSegment((string) $page[$field]) === strtolower((string) $segment)) {
             return true;
         }
@@ -241,6 +244,7 @@ function exportRecord($table, array $record, $connectionPool, $depth)
         if (in_array($type, array('input', 'text'), true) && is_scalar($record[$field])) {
             $fields[$field] = (string) $record[$field];
         }
+
         if (
             $depth < 4
             && !empty($config['foreign_table'])

@@ -379,6 +379,7 @@ final readonly class ContentFlowClient
 
             throw new \RuntimeException($details, 0, $exception);
         }
+
         if (!\is_array($decoded)) {
             throw new \RuntimeException(sprintf('ContentFlow returned an unsupported JSON response for %s.', $endpoint));
         }

@@ -49,6 +49,7 @@ final readonly class HtmlSourceScraper
         if ($response->getStatusCode() >= 300 || !str_contains($contentType, 'text/html')) {
             throw new \RuntimeException('The source URL did not return an HTML page.');
         }
+
         if ('' === trim($html) || \strlen($html) > 5_000_000) {
             throw new \RuntimeException('The source HTML is empty or exceeds the 5 MB limit.');
         }
@@ -134,6 +135,7 @@ final readonly class HtmlSourceScraper
             ];
             $seen[spl_object_id($node)] = true;
         }
+
         if ([] === $elements) {
             throw new \RuntimeException('No editorial content could be detected in the source HTML.');
         }

@@ -78,9 +78,11 @@ final readonly class SourceConnectorClient
         if (!\is_array($body)) {
             throw new \RuntimeException('The source connector returned an invalid response.');
         }
+
         if ($response->getStatusCode() >= 300) {
             throw new \RuntimeException((string) ($body['error']['message'] ?? 'The source connector rejected the export.'));
         }
+
         if ('1.0' !== ($body['schema_version'] ?? null) || !\is_array($body['elements'] ?? null)) {
             throw new \RuntimeException('The source connector returned an unsupported export schema.');
         }

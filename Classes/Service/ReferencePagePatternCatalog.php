@@ -21,6 +21,7 @@ final readonly class ReferencePagePatternCatalog
         if ($referencePageUid <= 0) {
             return $targetTypes;
         }
+
         if (!\in_array($patternField, ['reference_patterns', 'catalog_patterns'], true)) {
             throw new \InvalidArgumentException('Unsupported migration pattern field.');
         }
@@ -68,6 +69,7 @@ final readonly class ReferencePagePatternCatalog
             if (null === $targetIndex) {
                 continue;
             }
+
             if (\count($targetTypes[$targetIndex][$patternField]) >= 25) {
                 continue;
             }
@@ -95,12 +97,14 @@ final readonly class ReferencePagePatternCatalog
                 if ('' !== trim($value)) {
                     $fieldValues[$field] = mb_substr($value, 0, 2000);
                 }
+
                 if (
                     '' === trim($value)
                     && \in_array($field, ['header', 'subheader'], true)
                 ) {
                     $emptyFields[] = $field;
                 }
+
                 if (
                     \is_array($fieldOptions[$field] ?? null)
                     && \array_key_exists($value, $fieldOptions[$field])

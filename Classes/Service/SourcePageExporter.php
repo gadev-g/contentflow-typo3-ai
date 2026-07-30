@@ -210,6 +210,7 @@ final readonly class SourcePageExporter
                     break;
                 }
             }
+
             if (!$matches) {
                 return false;
             }
@@ -277,6 +278,7 @@ final readonly class SourcePageExporter
                     $depth + 1,
                 );
             }
+
             if (\in_array($configuration['type'] ?? null, ['file', 'inline'], true)) {
                 $record['media'] = array_merge(
                     $record['media'],
@@ -284,6 +286,7 @@ final readonly class SourcePageExporter
                 );
             }
         }
+
         if ('tt_content' === $table) {
             $gridChildren = $this->gridChildren((int) ($row['uid'] ?? 0), $baseUrl, $depth + 1);
 
@@ -566,6 +569,7 @@ final readonly class SourcePageExporter
                 return GeneralUtility::makeInstance(\TYPO3\CMS\Core\Resource\ResourceFactory::class)
                     ->getFileObject((int) $match[1]);
             }
+
             if (preg_match('/^t3:\/\/file\?[^#]*\buid=(\d+)/i', $href, $match)) {
                 return GeneralUtility::makeInstance(\TYPO3\CMS\Core\Resource\ResourceFactory::class)
                     ->getFileObject((int) $match[1]);
